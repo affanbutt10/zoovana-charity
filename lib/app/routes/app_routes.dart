@@ -1,0 +1,49 @@
+abstract final class AppRoutes {
+  static const splash = '/splash';
+  static const onboarding = '/onboarding';
+  static const auth = '/auth';
+  static const login = '/auth/login';
+  static const signup = '/auth/signup';
+  static const recoverPassword = '/auth/recover-password';
+  static const setupProfile = '/auth/setup-profile';
+  static const home = '/home';
+  static const notifications = '/notifications';
+  // Routes marked "unregistered" are out of charity scope. Their screens are
+  // kept for reference, but AppPages no longer registers them.
+  static const charity = '/charity'; // unregistered
+  static const charitySupport = '/charity/support'; // unregistered
+  static const charityLocation = '/charity/location';
+  static const charityAnimal = '/charity/animal';
+  static const campaign = '/charity/campaign';
+  static const checkout = '/charity/checkout';
+  static const history = '/charity/history';
+  static const requestDetails = '/charity/requests/details';
+  static const shelterHub = '/charity/shelter-hub'; // unregistered
+  static const shelters = '/charity/shelters'; // unregistered
+  static const shelterCampaigns = '/charity/campaigns'; // unregistered
+  static const shelterDetails = '/charity/shelters/details'; // unregistered
+  static const shelterInfo = '/charity/shelters/info'; // unregistered
+  static const ratings = '/ratings'; // unregistered
+  static const unsupported = '/unsupported';
+  static const operatorApply = '/operator/apply';
+  static const operatorStatus = '/operator/status';
+  static const providerHome = '/provider';
+  static const providerJobs = '/provider/jobs';
+  static const providerJobDetails = '/provider/jobs/details';
+  static const providerPayouts = '/provider/payouts';
+  static const adoption = '/charity/adoption'; // unregistered
+  static const adoptionShelter = '/charity/adoption/shelter'; // unregistered
+  static const adoptionDetails = '/charity/adoption/details'; // unregistered
+  static const adoptionApply = '/charity/adoption/apply'; // unregistered
+  static const addPet = '/pets/add'; // unregistered
+  static const petDetails = '/pets/details'; // unregistered
+  static const profileDetails = '/account/profile';
+  static const orders = '/account/orders';
+  static const addresses = '/account/addresses'; // unregistered
+  static const appointments = '/account/appointments'; // unregistered
+  static const payments = '/account/payments'; // unregistered
+  static const favorites = '/account/favorites'; // unregistered
+  static const services = '/services'; // unregistered
+  static const serviceDetails = '/services/details'; // unregistered
+  static const bookService = '/services/book'; // unregistered
+}
