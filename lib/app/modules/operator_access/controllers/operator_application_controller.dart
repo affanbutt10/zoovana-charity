@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/errors/app_error_mapper.dart';
+import '../../../core/forms/input_rules.dart';
 import '../../../data/models/charity_campaign.dart';
 import '../../../data/models/feeder_models.dart';
 import '../../../data/repositories/charity_repository.dart';
@@ -107,9 +108,15 @@ class OperatorApplicationController extends GetxController {
 
   String? _missing() {
     if (program == null) return 'Choose the programme you will feed for.'.tr;
-    if (nameController.text.trim().isEmpty) return 'Enter your full name.'.tr;
-    if (phoneController.text.trim().length < 8) {
+    if (!InputRules.name(nameController.text)) {
+      return 'Enter your full name.'.tr;
+    }
+    if (!InputRules.phone(phoneController.text)) {
       return 'Enter a valid phone number.'.tr;
+    }
+    if (emailController.text.trim().isNotEmpty &&
+        !InputRules.email(emailController.text)) {
+      return 'Enter a valid email address.'.tr;
     }
     if (holderController.text.trim().isEmpty ||
         bankController.text.trim().isEmpty ||

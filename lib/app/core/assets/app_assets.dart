@@ -1,4 +1,9 @@
 abstract final class AppAssets {
+  static const feedingMakkah = 'assets/images/donor/city_makkah.png';
+  static const feedingMadinah = 'assets/images/donor/city_madinah.png';
+  static const feedingCats = 'assets/images/donor/cats_madinah.png';
+  static const feedingCatsMakkah = 'assets/images/donor/cats_makkah.png';
+  static const feedingBirds = 'assets/images/donor/birds_feeding.png';
   static const logo = 'assets/images/zoovana_logo.png';
   static const logoLight = 'assets/images/zoovana_logo_light.png';
   static const splashBackground = 'assets/images/splash_background.png';

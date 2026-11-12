@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/errors/app_error_mapper.dart';
+import '../../../core/forms/input_rules.dart';
 import '../../../data/repositories/session_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../routes/shell_router.dart';
@@ -44,7 +45,7 @@ class AuthLandingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Fund verified feeding rounds for street animals and see the proof of every meal.'
+                    'Help feed cats and birds in Makkah and Madinah, with local operators and approved photo proof.'
                         .tr,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -102,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     final email = emailController.text.trim();
-    if (!email.contains('@') || passwordController.text.length < 6) {
+    if (!InputRules.email(email) || passwordController.text.length < 6) {
       setState(() => errorText = 'Check your email and password.'.tr);
       return;
     }
@@ -131,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return _AuthSheetScaffold(
-      image: AppAssets.authLogin,
+      image: AppAssets.feedingCatsMakkah,
       filled: true,
       sheetTop: 273,
       header: const _BrandTitle(template: 'Login to @brand'),
@@ -222,12 +223,13 @@ class _SignupScreenState extends State<SignupScreen> {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Enter your full name.'.tr)));
+    if (!InputRules.name(name)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Enter your full name.'.tr)));
       return;
     }
-    if (!email.contains('@') || password.length < 8) {
+    if (!InputRules.email(email) || password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -238,8 +240,9 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
     if (password != confirmController.text) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Passwords do not match.'.tr)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Passwords do not match.'.tr)));
       return;
     }
     setState(() => _submitting = true);
@@ -279,7 +282,7 @@ class _SignupScreenState extends State<SignupScreen> {
       onTap: () => setState(() => _obscure = !_obscure),
     );
     return _AuthSheetScaffold(
-      image: AppAssets.authPuppies,
+      image: AppAssets.feedingBirds,
       filled: true,
       sheetTop: 235,
       header: const _BrandTitle(template: 'Signup to @brand'),
@@ -387,7 +390,7 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
     final longEnough = password.length >= 8;
     final matches = password.isNotEmpty && password == _confirmController.text;
     return _AuthSheetScaffold(
-      image: AppAssets.authRecovery,
+      image: AppAssets.feedingMadinah,
       filled: true,
       sheetTop: 272,
       onBack: _back,
@@ -464,6 +467,7 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
               Expanded(
                 child: TextField(
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [const PhoneInputFormatter()],
                   style: fieldTextStyle,
                   decoration: filledFieldDecoration(
                     icon: Iconsax.call_copy,
@@ -913,9 +917,9 @@ class _PhotoGrid extends StatelessWidget {
             flex: 218,
             child: Column(
               children: [
-                photo(AppAssets.authDog, 220),
+                photo(AppAssets.feedingCats, 220),
                 const SizedBox(height: 12),
-                photo(AppAssets.authFarm, 173),
+                photo(AppAssets.feedingMakkah, 173),
               ],
             ),
           ),
@@ -924,9 +928,9 @@ class _PhotoGrid extends StatelessWidget {
             flex: 126,
             child: Column(
               children: [
-                photo(AppAssets.authRabbit, 197),
+                photo(AppAssets.feedingBirds, 197),
                 const SizedBox(height: 10),
-                photo(AppAssets.authCollie, 198),
+                photo(AppAssets.feedingMadinah, 198),
               ],
             ),
           ),

@@ -12,12 +12,14 @@ class AppStateView extends StatelessWidget {
     required this.child,
     this.error,
     this.onRetry,
+    this.loadingChild,
   });
 
   final bool isLoading;
   final String? error;
   final VoidCallback? onRetry;
   final Widget child;
+  final Widget? loadingChild;
 
   @override
   Widget build(BuildContext context) => AnimatedSwitcher(
@@ -38,6 +40,7 @@ class AppStateView extends StatelessWidget {
 
   Widget _content() {
     if (isLoading) {
+      if (loadingChild != null) return loadingChild!;
       return const Center(
         child: CircularProgressIndicator(color: AppColors.brand),
       );

@@ -65,6 +65,7 @@ class DonationReceipt {
     this.hasProof = false,
     this.expectedCompletionAt,
     this.animalType = '',
+    this.imageUrl,
   });
 
   /// Request UUID; seed requests use their reference.
@@ -92,6 +93,9 @@ class DonationReceipt {
   /// The programme's `animal_type`; empty for requests cached before the app
   /// kept it.
   final String animalType;
+
+  /// Programme cover illustration; never represents approved feeding proof.
+  final String? imageUrl;
 
   /// Falls back to the title for older cached and seed requests.
   AnimalKind get animalKind {
@@ -151,6 +155,7 @@ class DonationReceipt {
         hasProof: hasProof || status == DonationStatus.completed,
         expectedCompletionAt: expectedCompletionAt,
         animalType: animalType,
+        imageUrl: imageUrl,
       );
 
   /// [this] with [other]'s programme, for list items that arrive with only
@@ -173,6 +178,7 @@ class DonationReceipt {
     hasProof: hasProof,
     expectedCompletionAt: expectedCompletionAt,
     animalType: other.animalType,
+    imageUrl: imageUrl ?? other.imageUrl,
   );
 
   /// `GET /requests/my` item, or the summary part of a request detail.
@@ -186,6 +192,7 @@ class DonationReceipt {
         json.strOrNull('program_city') ?? program?.strOrNull('city') ?? '';
     final title = program?.strOrNull('title');
     return DonationReceipt(
+      imageUrl: program?.strOrNull('image_url') ?? json.strOrNull('image_url'),
       id: json.str('id'),
       reference: json.str('reference'),
       campaignId: program?.str('id') ?? '',
@@ -234,6 +241,7 @@ class DonationReceipt {
           ? null
           : DateTime.tryParse(json['expectedCompletionAt'] as String),
       animalType: json['animalType'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 
@@ -255,5 +263,6 @@ class DonationReceipt {
     'hasProof': hasProof,
     'expectedCompletionAt': expectedCompletionAt?.toIso8601String(),
     'animalType': animalType,
+    'imageUrl': imageUrl,
   };
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_error_mapper.dart';
+import '../../../core/forms/input_rules.dart';
 import '../../../core/services/mock_checkout.dart';
 import '../../../data/models/charity_campaign.dart';
 import '../../../data/models/charity_package.dart';
@@ -23,6 +24,19 @@ class CharityCheckoutController extends GetxController {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final dedicationController = TextEditingController();
+  final DateTime draftDate = DateTime.now();
+  String paymentMethod = 'card';
+  bool saveCard = false;
+  void selectPaymentMethod(String value) {
+    paymentMethod = value;
+    update();
+  }
+
+  void toggleSaveCard() {
+    saveCard = !saveCard;
+    update();
+  }
+
   bool isAnonymous = false;
   bool notifyPush = true;
   bool notifyEmail = true;
@@ -41,14 +55,37 @@ class CharityCheckoutController extends GetxController {
     final campaign = arguments is Map ? arguments['campaign'] : null;
     final package = arguments is Map ? arguments['package'] : null;
     if (campaign is CharityCampaign && package is CharityPackage) {
-      state = CharityCheckoutState(campaign: campaign, package: package);
+      final lines = arguments['lines'];
+      state = CharityCheckoutState(
+        campaign: campaign,
+        package: package,
+        lines: lines is List<DonationLine>
+            ? List.unmodifiable(lines)
+            : const [],
+      );
     } else {
       initializationError =
           'Your selected charity package could not be found.'.tr;
     }
     nameController.text = session?.displayName ?? '';
     emailController.text = session?.email ?? '';
+    _prefillContact();
   }
+
+  Future<void> _prefillContact() async {
+    try {
+      final account = await session?.donorAccount();
+      if (isClosed || account == null) return;
+      if (phoneController.text.isEmpty) {
+        phoneController.text = account.phoneNumber;
+      }
+      update();
+    } catch (_) {
+      /* Existing contact inputs remain available. */
+    }
+  }
+
+  bool get hasValidDonorDetails => _validate() == null;
 
   void toggleAnonymous() {
     isAnonymous = !isAnonymous;
@@ -66,11 +103,13 @@ class CharityCheckoutController extends GetxController {
   }
 
   String? _validate() {
-    if (nameController.text.trim().isEmpty) return 'Enter your full name.'.tr;
-    if (!emailController.text.trim().contains('@')) {
+    if (!InputRules.name(nameController.text)) {
+      return 'Enter your full name.'.tr;
+    }
+    if (!InputRules.email(emailController.text)) {
       return 'Enter a valid email address.'.tr;
     }
-    if (phoneController.text.replaceAll(RegExp(r'\D'), '').length < 8) {
+    if (!InputRules.phone(phoneController.text)) {
       return 'Enter a valid phone number.'.tr;
     }
     if (dedicationController.text.length > dedicationLimit) {
@@ -96,13 +135,27 @@ class CharityCheckoutController extends GetxController {
   Future<void> submit() async {
     final current = state;
     if (current == null || current.isSubmitting) return;
+    if (!current.canSubmitLegacyRequest || current.hasMixedCurrencies) {
+      state = current.copyWith(
+        error:
+            'Multiple items and quantities are not available for checkout yet.'
+                .tr,
+      );
+      update();
+      return;
+    }
+    detailsError = _validate();
+    if (detailsError != null) {
+      update();
+      return;
+    }
 
     state = current.copyWith(isSubmitting: true, clearError: true);
     update();
     try {
       final receipt = await repository.createRequest(
         campaign: current.campaign,
-        package: current.package,
+        package: current.items.single.item,
         donor: DonorDetails(
           fullName: nameController.text.trim(),
           email: emailController.text.trim(),

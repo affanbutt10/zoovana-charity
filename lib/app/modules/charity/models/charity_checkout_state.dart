@@ -7,6 +7,7 @@ class CharityCheckoutState {
     required this.campaign,
     required this.package,
     this.isSubmitting = false,
+    this.lines = const [],
     this.receipt,
     this.error,
     this.fieldErrors = const {},
@@ -14,6 +15,14 @@ class CharityCheckoutState {
 
   final CharityCampaign campaign;
   final CharityPackage package;
+  final List<DonationLine> lines;
+  List<DonationLine> get items =>
+      lines.isEmpty ? [DonationLine(item: package, quantity: 1)] : lines;
+  String get totalLabel => hasMixedCurrencies ? '—' : basketTotalLabel(items);
+  bool get canSubmitLegacyRequest =>
+      items.length == 1 && items.single.quantity == 1;
+  bool get hasMixedCurrencies =>
+      items.map((l) => l.item.currency).toSet().length > 1;
   final bool isSubmitting;
   final DonationReceipt? receipt;
   final String? error;
@@ -31,6 +40,7 @@ class CharityCheckoutState {
     return CharityCheckoutState(
       campaign: campaign,
       package: package,
+      lines: lines,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       receipt: receipt ?? this.receipt,
       error: clearError ? null : (error ?? this.error),

@@ -238,7 +238,7 @@ class _AnimatedSplashContentState extends State<_AnimatedSplashContent>
                       position: _taglineSlide,
                       child: Text.rich(
                         TextSpan(
-                          text: 'Feed street animals, '.tr,
+                          text: 'Feed cats & birds, '.tr,
                           children: [
                             TextSpan(
                               text: 'see every meal'.tr,

@@ -11,6 +11,13 @@ class CharityCampaignController extends GetxController {
   CharityCampaignController({required this.repository});
 
   final CharityRepository repository;
+  bool gridView = false;
+
+  void toggleLayout(bool grid) {
+    gridView = grid;
+    update();
+  }
+
   CharityCampaignState state = const CharityCampaignState();
 
   @override
@@ -42,6 +49,7 @@ class CharityCampaignController extends GetxController {
         isLoading: false,
         packages: packages,
         selectedId: popular?.id,
+        quantities: popular == null ? const {} : {popular.id: 1},
         clearError: true,
       );
     } catch (error) {
@@ -54,7 +62,24 @@ class CharityCampaignController extends GetxController {
   }
 
   void select(CharityPackage item) {
-    state = state.copyWith(selectedId: item.id);
+    state = state.copyWith(selectedId: item.id, quantities: {item.id: 1});
+    update();
+  }
+
+  void setQuantity(CharityPackage item, int value) {
+    final quantities = {
+      for (final line in state.lines) line.item.id: line.quantity,
+    };
+    if (value <= 0) {
+      quantities.remove(item.id);
+    } else {
+      quantities[item.id] = value.clamp(1, 99);
+    }
+    state = state.copyWith(
+      quantities: quantities,
+      selectedId: quantities.keys.firstOrNull,
+      clearSelection: quantities.isEmpty,
+    );
     update();
   }
 
@@ -69,7 +94,11 @@ class CharityCampaignController extends GetxController {
     if (campaign == null || package == null) return;
     Get.toNamed(
       AppRoutes.checkout,
-      arguments: {'campaign': campaign, 'package': package},
+      arguments: {
+        'campaign': campaign,
+        'package': package,
+        'lines': state.lines,
+      },
     );
   }
 }

@@ -1,6 +1,20 @@
 // Arabic and Urdu for the common screens. Keys are the English text.
 
 const commonAr = <String, String>{
+  // Makkah and Madinah cat/bird feeding.
+  'Feed Cats & Birds in Makkah': 'أطعم القطط والطيور في مكة',
+  'Choose a food package for cats and birds in Makkah. A local operator arranges the feeding.':
+      'اختر باقة طعام للقطط والطيور في مكة، ويتولى مُطعِم محلي تنفيذ الإطعام.',
+  'Support Feeding in Madinah': 'ساهم في الإطعام في المدينة',
+  'Help feed cats and birds in Madinah. Local operators buy the food and carry out your request.':
+      'ساهم في إطعام القطط والطيور في المدينة. يشتري مُطعِمون محليون الطعام وينفّذون طلبك.',
+  'See Your Feeding Impact': 'شاهد أثر إطعامك',
+  'Follow your cats and birds feeding request in Makkah or Madinah, with photos after approval.':
+      'تابع طلب إطعام القطط والطيور في مكة أو المدينة، وشاهد الصور بعد اعتمادها.',
+  'Help feed cats and birds in Makkah and Madinah, with local operators and approved photo proof.':
+      'ساهم في إطعام القطط والطيور في مكة والمدينة عبر مُطعِمين محليين وإثباتات مصوّرة معتمدة.',
+  'Feed cats & birds, ': 'أطعم القطط والطيور، ',
+
   // Shared infrastructure
   'Language': 'اللغة',
   'Notifications': 'الإشعارات',
@@ -63,7 +77,8 @@ const commonAr = <String, String>{
   'Pick a city, an animal and a food package. A local operator does the rest.':
       'اختر مدينة وحيوانًا وباقة طعام، ويتولى المُطعِم المحلي الباقي.',
   'Verified Local Operators': 'مُطعِمون محليون موثّقون',
-  'Trusted operators buy the food and feed the animals in the area you choose.': 'يشتري مُطعِمون موثوقون الطعام ويُطعمون الحيوانات في المنطقة التي تختارها.',
+  'Trusted operators buy the food and feed the animals in the area you choose.':
+      'يشتري مُطعِمون موثوقون الطعام ويُطعمون الحيوانات في المنطقة التي تختارها.',
   'Proof of Every Meal': 'إثبات لكل وجبة',
   'See photos and the impact of your donation once each feeding is approved.':
       'شاهد الصور وأثر تبرّعك بعد اعتماد كل جولة إطعام.',
@@ -121,7 +136,8 @@ const commonAr = <String, String>{
   // Recover password
   'Recover Password': 'استعادة كلمة المرور',
   'Set new password': 'تعيين كلمة مرور جديدة',
-  'Don’t worry Enter your email or phone number\nassociated with your account to receive an OTP code': 'لا تقلق، أدخل بريدك الإلكتروني أو رقم هاتفك\nالمرتبط بحسابك لتلقي رمز التحقق',
+  'Don’t worry Enter your email or phone number\nassociated with your account to receive an OTP code':
+      'لا تقلق، أدخل بريدك الإلكتروني أو رقم هاتفك\nالمرتبط بحسابك لتلقي رمز التحقق',
   'We’ve sent a 4-digit verification code to @phone':
       'أرسلنا رمز تحقق من 4 أرقام إلى @phone',
   'create a strong password to protect your account.\nMinimum 8 characters required':
@@ -140,6 +156,20 @@ const commonAr = <String, String>{
 };
 
 const commonUr = <String, String>{
+  // Makkah and Madinah cat/bird feeding.
+  'Feed Cats & Birds in Makkah': 'مکہ میں بلیوں اور پرندوں کو کھانا کھلائیں',
+  'Choose a food package for cats and birds in Makkah. A local operator arranges the feeding.':
+      'مکہ میں بلیوں اور پرندوں کے لیے فوڈ پیکیج منتخب کریں۔ مقامی آپریٹر کھانا کھلانے کا انتظام کرے گا۔',
+  'Support Feeding in Madinah': 'مدینہ میں کھانا کھلانے میں حصہ ڈالیں',
+  'Help feed cats and birds in Madinah. Local operators buy the food and carry out your request.':
+      'مدینہ میں بلیوں اور پرندوں کو کھانا کھلانے میں مدد کریں۔ مقامی آپریٹرز کھانا خرید کر آپ کی درخواست پوری کرتے ہیں۔',
+  'See Your Feeding Impact': 'کھانا کھلانے کا اثر دیکھیں',
+  'Follow your cats and birds feeding request in Makkah or Madinah, with photos after approval.':
+      'مکہ یا مدینہ میں بلیوں اور پرندوں کو کھانا کھلانے کی درخواست کی پیش رفت اور منظوری کے بعد تصاویر دیکھیں۔',
+  'Help feed cats and birds in Makkah and Madinah, with local operators and approved photo proof.':
+      'مقامی آپریٹرز اور منظور شدہ تصویری ثبوت کے ساتھ مکہ اور مدینہ میں بلیوں اور پرندوں کو کھانا کھلائیں۔',
+  'Feed cats & birds, ': 'بلیوں اور پرندوں کو کھانا کھلائیں، ',
+
   // Shared infrastructure
   'Language': 'زبان',
   'Notifications': 'اطلاعات',
@@ -202,7 +232,8 @@ const commonUr = <String, String>{
   'Pick a city, an animal and a food package. A local operator does the rest.':
       'شہر، جانور اور فوڈ پیکیج منتخب کریں۔ باقی کام مقامی آپریٹر کرے گا۔',
   'Verified Local Operators': 'تصدیق شدہ مقامی آپریٹرز',
-  'Trusted operators buy the food and feed the animals in the area you choose.': 'قابلِ اعتماد آپریٹرز کھانا خریدتے ہیں اور آپ کے منتخب کردہ علاقے میں جانوروں کو کھلاتے ہیں۔',
+  'Trusted operators buy the food and feed the animals in the area you choose.':
+      'قابلِ اعتماد آپریٹرز کھانا خریدتے ہیں اور آپ کے منتخب کردہ علاقے میں جانوروں کو کھلاتے ہیں۔',
   'Proof of Every Meal': 'ہر کھانے کا ثبوت',
   'See photos and the impact of your donation once each feeding is approved.':
       'ہر کھانا کھلانے کی منظوری کے بعد تصاویر اور اپنے عطیے کا اثر دیکھیں۔',
@@ -215,16 +246,19 @@ const commonUr = <String, String>{
   'STEP @step OF @total': 'مرحلہ @step از @total',
   'Search..': 'تلاش کریں..',
   'Add': 'شامل کریں',
-  "We're preparing your order now and will let you know when it's ready. Thank you!": 'ہم آپ کا آرڈر تیار کر رہے ہیں اور تیار ہونے پر آپ کو مطلع کریں گے۔ شکریہ!',
+  "We're preparing your order now and will let you know when it's ready. Thank you!":
+      'ہم آپ کا آرڈر تیار کر رہے ہیں اور تیار ہونے پر آپ کو مطلع کریں گے۔ شکریہ!',
   'Select': 'منتخب کریں',
   'Add photo': 'تصویر شامل کریں',
   'Back': 'واپس',
   'About Pets Health': 'پالتو جانوروں کی صحت کے بارے میں',
-  'Order your free paw collar today to track the movements of your pet': 'اپنے پالتو جانور کی نقل و حرکت جاننے کے لیے آج ہی مفت پنجہ کالر منگوائیں',
+  'Order your free paw collar today to track the movements of your pet':
+      'اپنے پالتو جانور کی نقل و حرکت جاننے کے لیے آج ہی مفت پنجہ کالر منگوائیں',
 
   // Welcome, login and signup
   'Welcome to @brand': '@brand میں خوش آمدید',
-  'Fund verified feeding rounds for street animals and see the proof of every meal.': 'گلی کے جانوروں کے لیے تصدیق شدہ کھانا کھلانے کے دوروں کی مالی مدد کریں اور ہر کھانے کا ثبوت دیکھیں۔',
+  'Fund verified feeding rounds for street animals and see the proof of every meal.':
+      'گلی کے جانوروں کے لیے تصدیق شدہ کھانا کھلانے کے دوروں کی مالی مدد کریں اور ہر کھانے کا ثبوت دیکھیں۔',
   'Login': 'لاگ ان',
   'I’m new, signup': 'میں نیا ہوں، سائن اپ',
   'Login to @brand': '@brand میں لاگ ان کریں',
@@ -257,10 +291,12 @@ const commonUr = <String, String>{
   // Recover password
   'Recover Password': 'پاس ورڈ بحال کریں',
   'Set new password': 'نیا پاس ورڈ سیٹ کریں',
-  'Don’t worry Enter your email or phone number\nassociated with your account to receive an OTP code': 'فکر نہ کریں، OTP کوڈ حاصل کرنے کے لیے اپنے اکاؤنٹ سے منسلک\nای میل یا فون نمبر درج کریں',
+  'Don’t worry Enter your email or phone number\nassociated with your account to receive an OTP code':
+      'فکر نہ کریں، OTP کوڈ حاصل کرنے کے لیے اپنے اکاؤنٹ سے منسلک\nای میل یا فون نمبر درج کریں',
   'We’ve sent a 4-digit verification code to @phone':
       'ہم نے @phone پر 4 ہندسوں کا تصدیقی کوڈ بھیج دیا ہے',
-  'create a strong password to protect your account.\nMinimum 8 characters required': 'اپنے اکاؤنٹ کی حفاظت کے لیے مضبوط پاس ورڈ بنائیں۔\nکم از کم 8 حروف ضروری ہیں',
+  'create a strong password to protect your account.\nMinimum 8 characters required':
+      'اپنے اکاؤنٹ کی حفاظت کے لیے مضبوط پاس ورڈ بنائیں۔\nکم از کم 8 حروف ضروری ہیں',
   'Send OTP': 'OTP بھیجیں',
   'Verify & continue': 'تصدیق کر کے جاری رکھیں',
   'OR': 'یا',

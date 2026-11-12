@@ -11,6 +11,7 @@ import 'app/core/theme/app_theme.dart';
 import 'app/core/translations/app_translations.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
+import 'app/shared/widgets/dismiss_keyboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,7 +67,7 @@ class ZoovanaCharityApp extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
-                child: child ?? const SizedBox.shrink(),
+                child: DismissKeyboard(child: child ?? const SizedBox.shrink()),
               ),
             ),
           ),
