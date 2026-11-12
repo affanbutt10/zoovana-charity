@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/assets/app_assets.dart';
 import '../../../core/services/app_locale.dart';
 // Out of charity scope: only the commented-out reminders used these icons.
 // import '../../../core/assets/app_icons.dart';
@@ -19,16 +18,12 @@ import '../../../data/repositories/feeder_repository.dart';
 // import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/session_repository.dart';
 import '../../../routes/app_routes.dart';
-import '../../../routes/shell_router.dart';
 import '../../../shared/widgets/app_animations.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/language_picker.dart';
-import '../../../shared/widgets/media_picker.dart';
-import '../../../shared/widgets/notification_bell.dart';
 import '../../../shared/widgets/zoovana_ui.dart';
-import '../../charity/screens/charity_setup_screens.dart';
-import '../../charity/widgets/animal_visual.dart';
-import '../../history/screens/donation_history_screen.dart';
+import 'donor_tab_views.dart';
+import '../../../core/errors/app_error_mapper.dart';
 
 /// Customer tabs addressable through the home route's arguments.
 abstract final class CustomerTab {
@@ -56,7 +51,11 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
   int _index = CustomerTab.home;
   List<DonationReceipt> _donations = const [];
   List<CharityCampaign> _programmes = const [];
-  List<FeedingHighlight> _highlights = const [];
+  bool _loadingRequests = true;
+  bool _loadingProgrammes = true;
+  bool _loadingMore = false;
+  String? _requestsError;
+  String? _programmesError;
   bool _hasMoreRequests = false;
 
   @override
@@ -67,6 +66,7 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
       _index = initial;
     }
     _loadDonations();
+    _loadingRequests = _donations.isEmpty;
     _refreshDonations();
     _loadProgrammes();
   }
@@ -82,13 +82,27 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
 
   /// Pulls the latest status of requests that are still in progress.
   Future<void> _refreshDonations() async {
-    if (!Get.isRegistered<CharityRepository>()) return;
+    if (!Get.isRegistered<CharityRepository>()) {
+      if (mounted) setState(() => _loadingRequests = false);
+      return;
+    }
     try {
       await Get.find<CharityRepository>().refreshDonationHistory();
-      if (mounted) _loadDonations();
-    } catch (_) {
-      // Cached statuses stay on screen until the next refresh succeeds.
+      if (mounted) {
+        _loadDonations();
+        setState(() => _requestsError = null);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _requestsError = AppErrorMapper.map(error).message);
+      }
+    } finally {
+      if (mounted) setState(() => _loadingRequests = false);
     }
+  }
+
+  Future<void> _refreshAll() async {
+    await Future.wait([_refreshDonations(), _loadProgrammes()]);
   }
 
   Future<void> _openRequest(DonationReceipt request) async {
@@ -97,35 +111,47 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
   }
 
   Future<void> _loadProgrammes() async {
-    if (!Get.isRegistered<CharityRepository>()) return;
+    if (!Get.isRegistered<CharityRepository>()) {
+      if (mounted) setState(() => _loadingProgrammes = false);
+      return;
+    }
     try {
-      final repository = Get.find<CharityRepository>();
-      final programmes = await repository.getCampaigns();
-      if (mounted) setState(() => _programmes = programmes);
-      final highlights = await repository.getHighlights(programmes);
-      if (mounted) setState(() => _highlights = highlights);
-    } catch (_) {
-      // The programmes section stays hidden until campaigns can be loaded.
+      final programmes = await Get.find<CharityRepository>().getCampaigns();
+      if (mounted) {
+        setState(() {
+          _programmes = programmes
+              .where((p) => p.isSupportedFeeding)
+              .toList(growable: false);
+          _programmesError = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _programmesError = AppErrorMapper.map(error).message);
+      }
+    } finally {
+      if (mounted) setState(() => _loadingProgrammes = false);
     }
   }
 
   Future<void> _loadMoreRequests() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
     try {
       final repository = Get.find<CharityRepository>();
       await repository.loadMoreDonationHistory();
       if (mounted) _loadDonations();
-    } catch (_) {
-      // The button stays so the donor can retry.
+    } catch (error) {
+      if (mounted) {
+        setState(() => _requestsError = AppErrorMapper.map(error).message);
+      }
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 
   Future<void> _donate() async {
     await Get.toNamed<dynamic>(AppRoutes.charityLocation);
-    if (mounted) _loadDonations();
-  }
-
-  Future<void> _openProgramme(CharityCampaign programme) async {
-    await Get.toNamed<dynamic>(AppRoutes.campaign, arguments: programme);
     if (mounted) _loadDonations();
   }
 
@@ -142,34 +168,48 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
       body: IndexedStack(
         index: _index,
         children: [
-          _CustomerHome(
-            active: _index == CustomerTab.home,
-            donations: _donations,
-            programmes: _programmes,
-            highlights: _highlights,
-            onDonate: _donate,
-            onOpenProgramme: _openProgramme,
-            onOpenRequest: _openRequest,
-            onViewRequests: () => _select(CustomerTab.requests),
+          TickerMode(
+            enabled: _index == CustomerTab.home,
+            child: DonorHomeView(
+              requests: _donations,
+              programmes: _programmes,
+              loadingRequests: _loadingRequests,
+              loadingProgrammes: _loadingProgrammes,
+              error: _requestsError ?? _programmesError,
+              onRetry: _refreshAll,
+              onRefresh: _refreshAll,
+              onDonate: _donate,
+              onOpenRequest: _openRequest,
+              onViewRequests: () => _select(CustomerTab.requests),
+            ),
           ),
-          _RequestsTab(
-            active: _index == CustomerTab.requests,
-            donations: _donations,
-            onLoadMore: _hasMoreRequests ? _loadMoreRequests : null,
-            onDonate: _donate,
-            onOpenRequest: _openRequest,
+          TickerMode(
+            enabled: _index == CustomerTab.requests,
+            child: DonorRequestsView(
+              requests: _donations,
+              loading: _loadingRequests,
+              loadingMore: _loadingMore,
+              error: _requestsError,
+              onRefresh: _refreshDonations,
+              onDonate: _donate,
+              onOpen: _openRequest,
+              onLoadMore: _hasMoreRequests ? _loadMoreRequests : null,
+            ),
           ),
-          _ImpactTab(
-            active: _index == CustomerTab.impact,
-            donations: _donations,
-            onDonate: _donate,
-            onOpenRequest: _openRequest,
-            onViewRequests: () => _select(CustomerTab.requests),
+          TickerMode(
+            enabled: _index == CustomerTab.impact,
+            child: DonorImpactView(
+              requests: _donations,
+              loading: _loadingRequests,
+              error: _requestsError,
+              onRefresh: _refreshDonations,
+              onDonate: _donate,
+              onOpen: _openRequest,
+            ),
           ),
-          _ProfileTab(
-            active: _index == CustomerTab.profile,
-            donations: _donations,
+          DonorProfileView(
             onViewRequests: () => _select(CustomerTab.requests),
+            onRefresh: _refreshAll,
           ),
         ],
       ),
@@ -178,22 +218,10 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
         selectedIndex: _index,
         onSelected: _select,
         onCenterTap: _donate,
+        centerIcon: Icons.add_rounded,
       ),
     );
   }
-}
-
-class _CustomerHeaderActions {
-  static List<Widget> build() => [
-    // Out of charity scope: the charity hub shortcut. Donating starts from
-    // the centre action and the Home banner instead.
-    // HeaderCircleButton(
-    //   iconWidget: const AssetIcon(AppIcons.heartHands, size: 24),
-    //   tooltip: 'Charity',
-    //   onTap: onOpenCharity,
-    // ),
-    const NotificationBell(),
-  ];
 }
 
 /// Light page that slides over the teal header with large rounded corners.
@@ -210,37 +238,6 @@ class RoundedSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
       ),
       child: child,
-    ),
-  );
-}
-
-/// White title and subtitle shown in the teal header of a tab.
-class _TabHeading extends StatelessWidget {
-  const _TabHeading({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            height: 1.2,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13.5),
-        ),
-      ],
     ),
   );
 }
@@ -276,624 +273,6 @@ List<Widget> _impactStats(
       onTap: onViewRequests,
     ),
   ];
-}
-
-class _CustomerHome extends StatelessWidget {
-  const _CustomerHome({
-    required this.active,
-    required this.donations,
-    required this.programmes,
-    required this.highlights,
-    required this.onDonate,
-    required this.onOpenProgramme,
-    required this.onOpenRequest,
-    required this.onViewRequests,
-  });
-
-  /// Replays the sections' entrance each time the tab is shown.
-  final bool active;
-  final List<DonationReceipt> donations;
-  final List<CharityCampaign> programmes;
-  final List<FeedingHighlight> highlights;
-  final VoidCallback onDonate;
-  final ValueChanged<CharityCampaign> onOpenProgramme;
-  final ValueChanged<DonationReceipt> onOpenRequest;
-  final VoidCallback onViewRequests;
-
-  static const _gutter = EdgeInsets.symmetric(horizontal: 20);
-
-  static String _greeting() {
-    final name = Get.find<SessionRepository>().displayName;
-    final first = name?.trim().split(RegExp(r'\s+')).first ?? '';
-    return first.isEmpty
-        ? 'Hi there!'.tr
-        : 'Hi @name!'.trParams({'name': first});
-  }
-
-  /// Where the programmes feed, e.g. "Feeding animals in Makkah & Madinah".
-  String _where() {
-    final cities = {for (final programme in programmes) programme.city};
-    if (cities.isEmpty) return 'Feed street animals, see every meal'.tr;
-    return 'Feeding animals in @cities'.trParams({
-      'cities': cities.join(' ${'&'.tr} '),
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Out of charity scope, kept commented out further down this file:
-    // My Pets, Quick Services, Reminders, Today's Offer and Vet's Daily Advice.
-    return ColoredBox(
-      color: AppColors.brand,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: BrandHeader(
-              bottomPadding: 26,
-              actions: _CustomerHeaderActions.build(),
-              child: HeaderGreeting(greeting: _greeting(), location: _where()),
-            ),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: RoundedSheet(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: 20,
-                  bottom: AppBottomNav.contentPadding(context),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: staggered(trigger: active, [
-                    Padding(
-                      padding: _gutter,
-                      child: _DonateBanner(onTap: onDonate),
-                    ),
-                    if (donations.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _DonationCases(
-                        donations: donations.take(5).toList(growable: false),
-                        onViewAll: onViewRequests,
-                        onOpen: onOpenRequest,
-                      ),
-                    ],
-                    if (programmes.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: _gutter,
-                        child: SectionHeader(title: 'Feeding programmes'.tr),
-                      ),
-                      const SizedBox(height: 11),
-                      SizedBox(
-                        height: 172,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                          scrollDirection: Axis.horizontal,
-                          itemCount: programmes.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 14),
-                          itemBuilder: (context, index) => _ProgrammeCard(
-                            programme: programmes[index],
-                            onTap: () => onOpenProgramme(programmes[index]),
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (highlights.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: _gutter,
-                        child: SectionHeader(
-                          title: 'Recent verified feedings'.tr,
-                        ),
-                      ),
-                      const SizedBox(height: 11),
-                      SizedBox(
-                        height: 172,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                          scrollDirection: Axis.horizontal,
-                          itemCount: highlights.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 14),
-                          itemBuilder: (context, index) =>
-                              _HighlightCard(highlight: highlights[index]),
-                        ),
-                      ),
-                    ],
-                    // Returning donors already know the steps.
-                    if (donations.isEmpty) ...[
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: _gutter,
-                        child: SectionHeader(title: 'How it works'.tr),
-                      ),
-                      const SizedBox(height: 11),
-                      const Padding(padding: _gutter, child: _HowItWorks()),
-                    ],
-                  ]),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Feeding programme on the white swirl card used by the city and animal
-/// choices: the city artwork sits faded behind the animal cut-out.
-class _ProgrammeCard extends StatelessWidget {
-  const _ProgrammeCard({required this.programme, required this.onTap});
-  final CharityCampaign programme;
-  final VoidCallback onTap;
-
-  static String _formatCount(int value) => value.toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final bird = programme.animalKind == AnimalKind.bird;
-    final dog = programme.animalKind == AnimalKind.dog;
-    final skyline = citySkyline('${programme.cityCode} ${programme.city}');
-    return SizedBox(
-      width: 272,
-      child: SurfaceCard(
-        radius: 16,
-        shadow: true,
-        onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const CustomPaint(painter: CardSwirlPainter()),
-            if (skyline != null)
-              PositionedDirectional(
-                end: -28,
-                top: 8,
-                width: 150,
-                child: Opacity(
-                  opacity: .22,
-                  child: Image.asset(skyline, fit: BoxFit.fitWidth),
-                ),
-              ),
-            PositionedDirectional(
-              end: bird ? -6 : 2,
-              bottom: bird ? 10 : 0,
-              width: bird ? 132 : (dog ? 96 : 116),
-              child: Image.asset(
-                animalArt(programme.animalKind),
-                fit: BoxFit.contain,
-                alignment: AlignmentDirectional.bottomEnd,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 0, 14),
-              child: SizedBox(
-                width: 140,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      programme.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.brand,
-                        fontSize: 17,
-                        height: 1.2,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _MetaLine(
-                      icon: const Icon(
-                        Iconsax.location_copy,
-                        size: 16,
-                        color: Color(0xFF8E8E8E),
-                      ),
-                      text: programme.city,
-                    ),
-                    // The API doesn't send supporter counts yet.
-                    if (programme.supporters > 0) ...[
-                      const SizedBox(height: 4),
-                      _MetaLine(
-                        icon: const Icon(
-                          Iconsax.people_copy,
-                          size: 16,
-                          color: Color(0xFF8E8E8E),
-                        ),
-                        text: '@count supporters'.trParams({
-                          'count': _formatCount(programme.supporters),
-                        }),
-                      ),
-                    ],
-                    const Spacer(),
-                    SizedBox(
-                      width: 104,
-                      child: PillButton(
-                        label: 'Donate'.tr,
-                        height: 32,
-                        onPressed: onTap,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// An anonymised approved feeding: photo, zone and meals.
-class _HighlightCard extends StatelessWidget {
-  const _HighlightCard({required this.highlight});
-  final FeedingHighlight highlight;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 220,
-    child: SurfaceCard(
-      radius: 16,
-      shadow: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 96,
-            width: double.infinity,
-            child: LocalOrNetworkImage(
-              highlight.imageUrl ?? AppAssets.charityStreet,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MetaLine(
-                  icon: const Icon(
-                    Iconsax.location_copy,
-                    size: 16,
-                    color: Color(0xFF8E8E8E),
-                  ),
-                  text: highlight.zone,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '@meals meals · ~@animals animals fed'.trParams({
-                    'meals': '${highlight.mealCount}',
-                    'animals': '${highlight.animalsFedEstimate}',
-                  }),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.brand,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-/// Three numbered steps from package to verified proof.
-class _HowItWorks extends StatelessWidget {
-  const _HowItWorks();
-
-  static const _steps = [
-    ('Choose a package', 'Pick a city, an animal and a food package.'),
-    (
-      'A local operator feeds them',
-      'A verified operator buys the food and runs the feeding round.',
-    ),
-    (
-      'Receive verified proof',
-      'Photos and impact details appear once the feeding is approved.',
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) => SurfaceCard(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-    child: Column(
-      children: [
-        for (final (index, step) in _steps.indexed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brandSoft,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: AppColors.brand,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(step.$1.tr, style: _cardTitle),
-                      const SizedBox(height: 2),
-                      Text(step.$2.tr, style: _cardMeta),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-/// Impact summary and the feedings whose proof has been approved.
-class _ImpactTab extends StatelessWidget {
-  const _ImpactTab({
-    required this.active,
-    required this.donations,
-    required this.onDonate,
-    required this.onOpenRequest,
-    required this.onViewRequests,
-  });
-
-  /// Replays the sections' entrance each time the tab is shown.
-  final bool active;
-  final List<DonationReceipt> donations;
-  final VoidCallback onDonate;
-  final ValueChanged<DonationReceipt> onOpenRequest;
-  final VoidCallback onViewRequests;
-
-  @override
-  Widget build(BuildContext context) {
-    final verified = donations
-        .where((item) => item.status.isCompleted)
-        .toList(growable: false);
-    return ColoredBox(
-      color: AppColors.brand,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: BrandHeader(
-              bottomPadding: 22,
-              actions: _CustomerHeaderActions.build(),
-              child: _TabHeading(
-                title: 'My Impact'.tr,
-                subtitle: 'What your donations have achieved'.tr,
-              ),
-            ),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: RoundedSheet(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  20,
-                  20,
-                  AppBottomNav.contentPadding(context),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: staggered(trigger: active, [
-                    Row(
-                      children: _impactStats(
-                        donations,
-                        onViewRequests: onViewRequests,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SectionHeader(title: 'Verified feedings'.tr),
-                    const SizedBox(height: 11),
-                    if (verified.isEmpty)
-                      _VerifiedEmpty(
-                        hasRequests: donations.isNotEmpty,
-                        onDonate: onDonate,
-                      )
-                    else
-                      for (final donation in verified) ...[
-                        DonationReceiptCard(
-                          receipt: donation,
-                          onTap: () => onOpenRequest(donation),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                  ]),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Photo card in the charity hub style, shown until a feeding is approved.
-class _VerifiedEmpty extends StatelessWidget {
-  const _VerifiedEmpty({required this.hasRequests, required this.onDonate});
-  final bool hasRequests;
-  final VoidCallback onDonate;
-
-  @override
-  Widget build(BuildContext context) => SurfaceCard(
-    shadow: true,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Image.asset(
-          AppAssets.charityStreet,
-          height: 140,
-          width: double.infinity,
-          fit: BoxFit.cover,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Proof you can see'.tr,
-                style: const TextStyle(
-                  color: AppColors.brand,
-                  fontSize: 19.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                hasRequests
-                    ? 'Your requests are on their way. Photos and details appear here once a feeding is approved.'
-                          .tr
-                    : 'Once a feeding round is approved, its photos and details appear here.'
-                          .tr,
-                style: const TextStyle(fontSize: 13.5, height: 1.25),
-              ),
-              if (!hasRequests) ...[
-                const SizedBox(height: 14),
-                PillButton(
-                  label: 'Feed street animals'.tr,
-                  height: 34,
-                  onPressed: onDonate,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-/// Every charity request with its status, newest first.
-class _RequestsTab extends StatelessWidget {
-  const _RequestsTab({
-    required this.active,
-    required this.donations,
-    required this.onDonate,
-    required this.onOpenRequest,
-    this.onLoadMore,
-  });
-
-  /// Replays the list's entrance each time the tab is shown.
-  final bool active;
-  final List<DonationReceipt> donations;
-  final VoidCallback onDonate;
-  final ValueChanged<DonationReceipt> onOpenRequest;
-
-  /// Set while the server has older requests.
-  final VoidCallback? onLoadMore;
-
-  @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: AppColors.brand,
-    child: CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: BrandHeader(
-            bottomPadding: 22,
-            actions: _CustomerHeaderActions.build(),
-            child: _TabHeading(
-              title: 'My Requests'.tr,
-              subtitle: 'Track your feeding requests and their proof'.tr,
-            ),
-          ),
-        ),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: RoundedSheet(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                20,
-                20,
-                AppBottomNav.contentPadding(context),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: staggered(trigger: active, [
-                  if (donations.isEmpty)
-                    _EmptyRequests(onDonate: onDonate)
-                  else
-                    for (final donation in donations) ...[
-                      DonationReceiptCard(
-                        receipt: donation,
-                        onTap: () => onOpenRequest(donation),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  if (onLoadMore != null)
-                    TextButton(
-                      onPressed: onLoadMore,
-                      child: Text('Load more'.tr),
-                    ),
-                ]),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _EmptyRequests extends StatelessWidget {
-  const _EmptyRequests({required this.onDonate});
-  final VoidCallback onDonate;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 60),
-    child: Column(
-      children: [
-        const Icon(
-          Icons.volunteer_activism_outlined,
-          size: 54,
-          color: AppColors.textTertiary,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'No requests yet'.tr,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Your feeding requests and their progress will appear here.'.tr,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: 180,
-          child: PillButton(
-            label: 'Donate now'.tr,
-            height: 40,
-            onPressed: onDonate,
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 // Out of charity scope: My Pets and Quick Services on the old Home tab.
@@ -1018,182 +397,6 @@ class _ServiceGrid extends StatelessWidget {
   }
 }
 */
-
-class _DonateBanner extends StatelessWidget {
-  const _DonateBanner({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 150),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        image: const DecorationImage(
-          image: AssetImage(AppAssets.homeDonate),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-        color: const Color(0x8C1F1F1F),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Feed street animals'.tr,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Pick a food package and a local operator feeds the animals, with photo proof.'
-                  .tr,
-              maxLines: 2,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 32,
-              child: FilledButton(
-                onPressed: onTap,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  textStyle: const TextStyle(
-                    fontFamily: 'Glory',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: Text('Donate Now'.tr),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// Body text in the home cards is set in Poppins.
-const _cardTitle = TextStyle(
-  fontFamily: AppTheme.secondaryFontFamily,
-  fontSize: 15,
-  color: AppColors.textPrimary,
-);
-const _cardMeta = TextStyle(
-  fontFamily: AppTheme.secondaryFontFamily,
-  fontSize: 12,
-  color: Color(0xFF8E8E8E),
-);
-
-class _MetaLine extends StatelessWidget {
-  const _MetaLine({required this.icon, required this.text});
-  final Widget icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox.square(dimension: 18, child: Center(child: icon)),
-      const SizedBox(width: 5),
-      Expanded(
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: _cardMeta,
-        ),
-      ),
-    ],
-  );
-}
-
-class _DonationCases extends StatelessWidget {
-  const _DonationCases({
-    required this.donations,
-    required this.onViewAll,
-    required this.onOpen,
-  });
-  final List<DonationReceipt> donations;
-  final VoidCallback onViewAll;
-  final ValueChanged<DonationReceipt> onOpen;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: SectionHeader(title: 'Your requests'.tr, onAction: onViewAll),
-      ),
-      const SizedBox(height: 10),
-      SizedBox(
-        height: 110,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 21),
-          scrollDirection: Axis.horizontal,
-          itemCount: donations.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 17),
-          itemBuilder: (context, index) {
-            final donation = donations[index];
-            final card = Container(
-              width: 292,
-              padding: const EdgeInsets.fromLTRB(15, 16, 15, 0),
-              decoration: BoxDecoration(
-                color: index.isEven
-                    ? AppColors.donationCaseSurface
-                    : AppColors.accentSoft,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DonationStatusPill(
-                    status: donation.status,
-                    label: donation.label,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    donation.campaignTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _cardTitle,
-                  ),
-                  const SizedBox(height: 5),
-                  _MetaLine(
-                    icon: const Icon(
-                      Iconsax.clock_copy,
-                      size: 18,
-                      color: Color(0xFF8E8E8E),
-                    ),
-                    text: _formatDate(donation.createdAt),
-                  ),
-                ],
-              ),
-            );
-            return GestureDetector(onTap: () => onOpen(donation), child: card);
-          },
-        ),
-      ),
-    ],
-  );
-
-  static String _formatDate(DateTime date) =>
-      '${date.day}/${date.month}/${date.year}  '
-      '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-}
 
 // Out of charity scope: Reminders, Today's Offer and the My Pets tab.
 /*
@@ -1628,83 +831,6 @@ class _PetProfileCard extends StatelessWidget {
   );
 }
 */
-
-class _ProfileTab extends StatefulWidget {
-  const _ProfileTab({
-    required this.active,
-    required this.onViewRequests,
-    this.donations = const [],
-  });
-
-  final bool active;
-  final VoidCallback onViewRequests;
-  final List<DonationReceipt> donations;
-
-  @override
-  State<_ProfileTab> createState() => _ProfileTabState();
-}
-
-class _ProfileTabState extends State<_ProfileTab> {
-  Future<void> _open(String route, String label) async {
-    await Get.toNamed<dynamic>(route, arguments: label);
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.brand,
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        slivers: [
-          SliverToBoxAdapter(
-            child: BrandHeader(
-              bottomPadding: 22,
-              actions: _CustomerHeaderActions.build(),
-              child: _TabHeading(
-                title: 'My Profile'.tr,
-                subtitle: 'Manage your requests, impact & settings'.tr,
-              ),
-            ),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: RoundedSheet(
-              child: ProfileMenu(
-                active: widget.active,
-                isProvider: false,
-                donations: widget.donations,
-                onViewRequests: widget.onViewRequests,
-                onOpen: _open,
-                extraItems: [
-                  // Out of charity scope: the app picks the donor or operator
-                  // shell from the signed-in role, so there is no mode switch.
-                  // ProfileMenuItem(
-                  //   label: 'Switch to Provider Mode',
-                  //   subtitle: 'Accept service jobs and support animals',
-                  //   icon: Icons.business_center_rounded,
-                  //   iconColor: AppColors.brand,
-                  //   onTap: () => Get.offAllNamed(AppRoutes.providerHome),
-                  // ),
-                  // The label stays English: ProfileMenu finds the sign-out
-                  // item by it and shows its own translated card.
-                  ProfileMenuItem(
-                    label: 'Sign out',
-                    icon: Icons.logout_rounded,
-                    isDestructive: true,
-                    onTap: ShellRouter.signOut,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class ProfileMenuItem {
   const ProfileMenuItem({

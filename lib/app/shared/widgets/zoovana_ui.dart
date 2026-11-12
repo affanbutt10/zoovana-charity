@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../core/assets/app_assets.dart';
+import '../../core/forms/input_rules.dart';
 import '../../core/assets/app_icons.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_radius.dart';
@@ -1307,7 +1308,26 @@ class LabeledField extends StatelessWidget {
           keyboardType: keyboardType,
           // The keyboard's action key moves to the next field of the form.
           textInputAction: TextInputAction.next,
-          inputFormatters: inputFormatters,
+          inputFormatters: [
+            ...?inputFormatters,
+            if (keyboardType == TextInputType.phone)
+              const PhoneInputFormatter(),
+            if (keyboardType == TextInputType.emailAddress) ...[
+              FilteringTextInputFormatter.deny(RegExp(r'\s')),
+              LengthLimitingTextInputFormatter(254),
+            ],
+            if (keyboardType?.index == TextInputType.number.index &&
+                !(inputFormatters?.any(
+                      (f) => f is LengthLimitingTextInputFormatter,
+                    ) ??
+                    false))
+              if (keyboardType?.decimal == true)
+                const AmountInputFormatter()
+              else ...[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+          ],
           onChanged: onChanged,
           readOnly: readOnly,
           onTap: onTap,

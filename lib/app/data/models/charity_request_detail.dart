@@ -104,6 +104,9 @@ class CharityRequestDetail {
     required this.timeline,
     this.expectedCompletionAt,
     this.proof,
+    this.feedingAt,
+    this.feedingNotes = '',
+    this.items = const [],
   });
 
   /// The request with its latest status.
@@ -111,20 +114,81 @@ class CharityRequestDetail {
   final List<RequestEvent> timeline;
   final DateTime? expectedCompletionAt;
   final DonationProof? proof;
+  final DateTime? feedingAt;
+  final String feedingNotes;
+  final List<RequestFeedingItem> items;
 
   DonationStatus get status => request.status;
 
   /// `GET /requests/{id}`.
   factory CharityRequestDetail.fromApi(Map<String, dynamic> json) {
     final proof = json.object('proof');
+    final request = DonationReceipt.fromApi(json);
+    final rawItems = json.objects('items').isNotEmpty
+        ? json.objects('items')
+        : json.objects('feeding_items');
+    final package = json.object('package');
     return CharityRequestDetail(
-      request: DonationReceipt.fromApi(json),
+      request: request,
+      feedingAt: json.time('fed_at') ?? proof?.time('fed_at'),
+      feedingNotes: json.strOrNull('feeding_notes') ?? json.str('notes'),
+      items: rawItems.isNotEmpty
+          ? [
+              for (final item in rawItems)
+                RequestFeedingItem.fromJson(item, currency: request.currency),
+            ]
+          : [
+              RequestFeedingItem(
+                name: request.packageName,
+                description:
+                    package?.strOrNull('description') ??
+                    package?.str('description_en') ??
+                    '',
+                imageUrl: package?.strOrNull('image_url'),
+                unitAmount: request.amount,
+                currency: request.currency,
+                quantity: 1,
+              ),
+            ],
       timeline: [
         for (final item in json.objects('timeline'))
           RequestEvent.fromJson(item),
       ],
       expectedCompletionAt: json.time('expected_completion_at'),
       proof: proof == null ? null : DonationProof.fromJson(proof),
+    );
+  }
+}
+
+/// Item information required by the updated donor details view.
+class RequestFeedingItem {
+  const RequestFeedingItem({
+    required this.name,
+    this.description = '',
+    this.imageUrl,
+    this.unitAmount,
+    this.currency = '',
+    this.quantity,
+  });
+  final String name, description, currency;
+  final String? imageUrl, unitAmount;
+  final int? quantity;
+  factory RequestFeedingItem.fromJson(
+    Map<String, dynamic> json, {
+    required String currency,
+  }) {
+    final package = json.object('package');
+    return RequestFeedingItem(
+      name: json.strOrNull('name') ?? package?.str('name') ?? '',
+      description:
+          json.strOrNull('description') ?? package?.str('description') ?? '',
+      imageUrl: json.strOrNull('image_url') ?? package?.strOrNull('image_url'),
+      unitAmount:
+          json.strOrNull('unit_price') ??
+          json.strOrNull('amount') ??
+          package?.strOrNull('price'),
+      currency: json.strOrNull('currency') ?? currency,
+      quantity: json['quantity'] == null ? null : json.integer('quantity'),
     );
   }
 }

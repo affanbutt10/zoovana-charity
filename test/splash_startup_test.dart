@@ -42,11 +42,11 @@ void main() {
 
     expect(zoovanaLogo(), findsOneWidget);
     expect(splashBackground(), findsOneWidget);
-    expect(find.text('Feed street animals, see every meal'), findsOneWidget);
+    expect(find.text('Feed cats & birds, see every meal'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 1900));
     await tester.pumpAndSettle();
-    expect(find.text('Feed Street Animals'), findsOneWidget);
+    expect(find.text('Feed Cats & Birds in Makkah'), findsOneWidget);
     await tester.binding.setSurfaceSize(null);
   });
 

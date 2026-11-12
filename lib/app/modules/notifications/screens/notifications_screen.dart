@@ -6,8 +6,11 @@ import '../../../core/assets/app_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../data/models/app_notification.dart';
+import '../../../data/models/charity_session.dart';
+import '../../../data/repositories/session_repository.dart';
 import '../../../shared/widgets/app_animations.dart';
 import '../../../shared/widgets/app_state_view.dart';
+import '../../../shared/widgets/donor_shimmers.dart';
 import '../../../shared/widgets/zoovana_ui.dart';
 import '../controllers/notifications_controller.dart';
 
@@ -42,12 +45,16 @@ class NotificationsScreen extends GetView<NotificationsController> {
   @override
   Widget build(BuildContext context) => GetBuilder<NotificationsController>(
     builder: (controller) {
+      final donor =
+          Get.isRegistered<SessionRepository>() &&
+          Get.find<SessionRepository>().current?.appMode == AppMode.donor;
       final today = controller.today;
       final earlier = controller.earlier;
       return Scaffold(
         appBar: ZoovanaAppBar(title: 'Notifications'.tr),
         body: AppStateView(
           isLoading: controller.isLoading,
+          loadingChild: donor ? const NotificationListShimmer() : null,
           error: controller.error,
           onRetry: controller.load,
           child: controller.items.isEmpty
@@ -115,13 +122,18 @@ class NotificationsScreen extends GetView<NotificationsController> {
                           ..._cards(controller, earlier),
                         ],
                         if (controller.isLoadingMore)
-                          const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.brand,
-                              ),
-                            ),
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: donor
+                                ? const NotificationListShimmer(
+                                    count: 2,
+                                    scrollable: false,
+                                  )
+                                : const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.brand,
+                                    ),
+                                  ),
                           ),
                       ]),
                     ),

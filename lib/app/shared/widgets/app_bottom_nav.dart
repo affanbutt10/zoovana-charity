@@ -27,6 +27,7 @@ class AppBottomNav extends StatelessWidget {
     required this.onSelected,
     this.onCenterTap,
     this.centerLabel = 'Donate',
+    this.centerIcon,
   });
 
   final List<BottomNavDestination> destinations;
@@ -34,6 +35,7 @@ class AppBottomNav extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final VoidCallback? onCenterTap;
   final String centerLabel;
+  final IconData? centerIcon;
 
   /// Width reserved for the raised centre action.
   static const _centerWidth = 61.0;
@@ -133,6 +135,7 @@ class AppBottomNav extends StatelessWidget {
                       child: _CenterAction(
                         label: centerLabel.tr,
                         onTap: onCenterTap!,
+                        icon: centerIcon,
                       ),
                     ),
                   ),
@@ -199,10 +202,11 @@ class _NavIcon extends StatelessWidget {
 
 /// Coral siren button sitting in a pale ring above the bar.
 class _CenterAction extends StatelessWidget {
-  const _CenterAction({required this.label, required this.onTap});
+  const _CenterAction({required this.label, required this.onTap, this.icon});
 
   final String label;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -220,12 +224,16 @@ class _CenterAction extends StatelessWidget {
             color: Color(0xFFFAFAFA),
             shape: BoxShape.circle,
           ),
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
               color: AppColors.accent,
               shape: BoxShape.circle,
             ),
-            child: Center(child: AssetIcon(AppIcons.siren, size: 26)),
+            child: Center(
+              child: icon == null
+                  ? const AssetIcon(AppIcons.siren, size: 26)
+                  : Icon(icon, size: 32, color: Colors.white),
+            ),
           ),
         ),
       ),
@@ -237,7 +245,7 @@ abstract final class CustomerNav {
   static const destinations = <BottomNavDestination>[
     BottomNavDestination(icon: Iconsax.home_copy, label: 'Home'),
     BottomNavDestination(icon: Iconsax.receipt_2_copy, label: 'Requests'),
-    BottomNavDestination(icon: Iconsax.lovely_copy, label: 'Impact'),
+    BottomNavDestination(icon: Iconsax.heart_copy, label: 'Impact'),
     // Out of charity scope:
     // BottomNavDestination(icon: Iconsax.pet_copy, label: 'My Pets'),
     // BottomNavDestination(icon: Iconsax.health_copy, label: 'Services'),

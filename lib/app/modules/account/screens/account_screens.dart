@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/assets/app_assets.dart';
 import '../../../core/errors/app_error_mapper.dart';
+import '../../../core/forms/input_rules.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../shared/widgets/app_animations.dart';
@@ -146,7 +147,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
   Future<void> _save() async {
     final name = nameController.text.trim();
-    if (name.isEmpty) {
+    if (!InputRules.name(name)) {
       Get.snackbar('My Profile'.tr, 'Enter your full name.'.tr);
       return;
     }

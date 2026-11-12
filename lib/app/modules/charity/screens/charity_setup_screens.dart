@@ -10,6 +10,7 @@ import '../../../routes/app_routes.dart';
 import '../../../shared/widgets/app_animations.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/app_state_view.dart';
+import '../../../shared/widgets/donor_shimmers.dart';
 import '../../../shared/widgets/zoovana_ui.dart';
 import '../../home/screens/customer_shell_screen.dart';
 import '../widgets/animal_visual.dart';
@@ -23,6 +24,7 @@ class CharityNavBar extends StatelessWidget {
     destinations: CustomerNav.destinations,
     selectedIndex: null,
     onSelected: CustomerTab.open,
+    centerIcon: Icons.add_rounded,
     onCenterTap: () => Get.offNamedUntil(
       AppRoutes.charityLocation,
       ModalRoute.withName(AppRoutes.home),
@@ -109,16 +111,18 @@ class CharitySupportScreen extends StatelessWidget {
         CharityOptionCard(
           image: AppAssets.charityStreet,
           title: 'Street Animals'.tr,
-          body: 'Help stray animals access food, medical care, and rescue services in your community.'
-              .tr,
+          body:
+              'Help stray animals access food, medical care, and rescue services in your community.'
+                  .tr,
           onTap: () => Get.toNamed(AppRoutes.charityLocation),
         ),
         const SizedBox(height: 18),
         CharityOptionCard(
           image: AppAssets.charityShelter,
           title: 'Shelters and Campaigns'.tr,
-          body: 'Support animal shelters with the food, supplies, and care they need to protect animals.'
-              .tr,
+          body:
+              'Support animal shelters with the food, supplies, and care they need to protect animals.'
+                  .tr,
           onTap: () => Get.toNamed(AppRoutes.shelterHub),
         ),
       ]),
@@ -158,6 +162,7 @@ class _CharityLocationScreenState extends State<CharityLocationScreen> {
   Map<String, List<CharityCampaign>> get _cities {
     final cities = <String, List<CharityCampaign>>{};
     for (final programme in _programmes ?? const <CharityCampaign>[]) {
+      if (!programme.isSupportedFeeding) continue;
       final key = programme.cityCode.isEmpty
           ? programme.city
           : programme.cityCode;
@@ -232,7 +237,7 @@ class CharityAnimalScreen extends StatelessWidget {
       question: 'What animal do you want to feed ?'.tr,
       empty: 'Choose a city first.'.tr,
       choices: [
-        for (final programme in programmes)
+        for (final programme in programmes.where((p) => p.isSupportedFeeding))
           _ArtworkChoice(
             image: animalArt(programme.animalKind),
             label: _feedLabel(programme),
@@ -276,6 +281,7 @@ class _ArtworkChoiceScaffold extends StatelessWidget {
     appBar: ZoovanaAppBar(title: 'Street Animals Support'.tr),
     body: AppStateView(
       isLoading: isLoading,
+      loadingChild: const LocationListShimmer(),
       error: error,
       onRetry: onRetry,
       child: ListView(

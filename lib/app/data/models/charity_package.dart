@@ -33,7 +33,7 @@ class CharityPackage {
     this.category = 'Food',
     this.rating = 4.8,
     this.calories = 120,
-    this.image = 'assets/images/product_fresh_kisses.jpg',
+    this.image = 'assets/images/feeding_cat_food.jpg',
     this.imageUrl,
     this.mealCount,
     this.foodQuantityGrams,
@@ -112,8 +112,7 @@ class CharityPackage {
       category: json['category'] as String? ?? 'Food',
       rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
       calories: (json['calories'] as num?)?.toInt() ?? 120,
-      image:
-          json['image'] as String? ?? 'assets/images/product_fresh_kisses.jpg',
+      image: json['image'] as String? ?? 'assets/images/feeding_cat_food.jpg',
       mealCount: (json['mealCount'] as num?)?.toInt(),
     );
   }
@@ -134,8 +133,8 @@ class CharityPackage {
   };
 }
 
-/// A selected donation item and how many units are donated. Only the legacy
-/// shelter flow uses quantities; feeding requests carry one package.
+/// A selected food item and its draft quantity. Backend submission currently
+/// supports one line with quantity one; larger baskets remain local drafts.
 class DonationLine {
   const DonationLine({required this.item, required this.quantity});
 
@@ -143,6 +142,8 @@ class DonationLine {
   final int quantity;
 
   double get total => item.amount * quantity;
+  int get totalMinorUnits => moneyMinorUnits(item.price) * quantity;
+  String get totalLabel => formatMinorMoney(totalMinorUnits, item.currency);
 }
 
 /// Contact and notification choices sent with `POST /requests`.
@@ -167,3 +168,22 @@ class DonorDetails {
   final bool notifyPush;
   final bool notifyEmail;
 }
+
+/// Two-decimal API money is calculated in integer minor units, without doubles.
+int moneyMinorUnits(String amount) {
+  final match = RegExp(r'^(\d+)(?:\.(\d{1,2}))?$').firstMatch(amount.trim());
+  if (match == null) return 0;
+  return int.parse(match.group(1)!) * 100 +
+      int.parse((match.group(2) ?? '').padRight(2, '0'));
+}
+
+String formatMinorMoney(int units, String currency) => formatMoney(
+  '${units ~/ 100}.${(units % 100).toString().padLeft(2, '0')}',
+  currency,
+);
+String basketTotalLabel(List<DonationLine> lines) => lines.isEmpty
+    ? '—'
+    : formatMinorMoney(
+        lines.fold<int>(0, (total, line) => total + line.totalMinorUnits),
+        lines.first.item.currency,
+      );

@@ -60,6 +60,12 @@ class CharityCampaign {
 
   bool get isShelter => kind == CampaignKind.shelter;
 
+  /// The donor app currently offers only cat and bird feeding in these cities.
+  bool get isSupportedFeeding =>
+      (animalKind == AnimalKind.cat || animalKind == AnimalKind.bird) &&
+      (isMakkah ||
+          '${cityCode.toLowerCase()} ${city.toLowerCase()}'.contains('madin'));
+
   /// Cities with bundled artwork; others use a generic card.
   bool get isMakkah =>
       cityCode.toLowerCase().contains('mak') || city == 'Makkah';

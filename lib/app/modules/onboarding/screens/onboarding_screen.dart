@@ -45,23 +45,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const _pages = [
     _OnboardingPageData(
-      asset: AppAssets.onboardingCare,
-      title: 'Feed Street Animals',
-      body: 'Pick a city, an animal and a food package. A local operator does the rest.',
+      asset: AppAssets.feedingMakkah,
+      title: 'Feed Cats & Birds in Makkah',
+      body:
+          'Choose a food package for cats and birds in Makkah. A local operator arranges the feeding.',
       photoMotion: _PhotoMotion.rise,
       copyMotion: _CopyMotion.rise,
     ),
     _OnboardingPageData(
-      asset: AppAssets.onboardingAllPets,
-      title: 'Verified Local Operators',
-      body: 'Trusted operators buy the food and feed the animals in the area you choose.',
+      asset: AppAssets.feedingMadinah,
+      title: 'Support Feeding in Madinah',
+      body:
+          'Help feed cats and birds in Madinah. Local operators buy the food and carry out your request.',
       photoMotion: _PhotoMotion.pan,
       copyMotion: _CopyMotion.slide,
     ),
     _OnboardingPageData(
-      asset: AppAssets.onboardingTogether,
-      title: 'Proof of Every Meal',
-      body: 'See photos and the impact of your donation once each feeding is approved.',
+      asset: AppAssets.feedingBirds,
+      title: 'See Your Feeding Impact',
+      body:
+          'Follow your cats and birds feeding request in Makkah or Madinah, with photos after approval.',
       photoMotion: _PhotoMotion.embrace,
       copyMotion: _CopyMotion.pop,
       focus: Alignment(-.1, -.15),
