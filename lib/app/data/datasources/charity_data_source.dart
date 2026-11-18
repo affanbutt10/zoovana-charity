@@ -6,6 +6,7 @@ import '../../../apis/core/api_response.dart';
 import '../../core/errors/app_error.dart';
 import '../../core/services/app_locale.dart';
 import '../../core/services/cache_service.dart';
+import '../models/feeding_checkout.dart';
 import '../models/charity_campaign.dart';
 import '../models/charity_package.dart';
 import '../models/charity_request_detail.dart';
@@ -56,6 +57,56 @@ class RemoteCharityDataSource implements CharityDataSource {
 
   final ApiClient _client;
   Dio get _dio => _client.feeding;
+
+  Future<FeedingQuote> quoteBasket(List<DonationLine> lines) async {
+    final response = await _dio.post<dynamic>(
+      '/requests/quote',
+      data: {'items': basketBody(lines)},
+    );
+    return FeedingQuote.fromJson(response.dataMap);
+  }
+
+  Future<Map<String, dynamic>> checkoutContact() async =>
+      (await _dio.get<dynamic>('/requests/checkout-contact')).dataMap;
+  Future<FeedingPaymentMethods> paymentMethods() async =>
+      FeedingPaymentMethods.fromJson(
+        (await _dio.get<dynamic>('/requests/payment-methods')).dataMap,
+      );
+  Future<FeedingPaymentIntent> paymentIntent(String id) async {
+    final data = (await _dio.post<dynamic>(
+      FeedingEndpoints.paymentIntent(id),
+    )).dataMap;
+    final intent = FeedingPaymentIntent.fromJson(data);
+    final url = intent.payload.strOrNull('checkout_url');
+    if (url != null) intent.payload['checkout_url'] = _publicCheckoutUrl(url);
+    return intent;
+  }
+
+  Future<DonationReceipt> createBasket({
+    required List<DonationLine> lines,
+    required DonorDetails donor,
+    required String notes,
+    required String key,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      FeedingEndpoints.requests,
+      options: Options(headers: {'Idempotency-Key': key}),
+      data: {
+        'items': basketBody(lines),
+        'full_name': donor.fullName,
+        'email': donor.email,
+        if (donor.phoneNumber.isNotEmpty) 'phone_number': donor.phoneNumber,
+        if (donor.countryCode.isNotEmpty) 'country_code': donor.countryCode,
+        'feeding_notes': notes.trim().isEmpty ? null : notes.trim(),
+        'dedication': donor.dedication,
+        'is_anonymous': donor.isAnonymous,
+        'notify_push': donor.notifyPush,
+        'notify_email': donor.notifyEmail,
+        'locale': AppLocale.code,
+      },
+    );
+    return DonationReceipt.fromApi(response.dataMap);
+  }
 
   @override
   Future<List<CharityCampaign>> fetchCampaigns() async {
@@ -341,8 +392,9 @@ class SeedCharityDataSource implements CharityDataSource {
     int pageSize = 20,
     String? status,
   }) async {
-    final all = [for (final request in _stored) _withDemoStatus(request)]
-        .where((request) => status == null || request.status.code == status);
+    final all = [
+      for (final request in _stored) _withDemoStatus(request),
+    ].where((request) => status == null || request.status.code == status);
     final items = all.skip((page - 1) * pageSize).take(pageSize).toList();
     return PagedList(
       items,

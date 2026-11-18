@@ -1,6 +1,7 @@
 // Arabic and Urdu for the donor screens. Keys are the English text.
 
 const donorAr = <String, String>{
+  'My Campaigns': 'حملاتي',
   '&': 'و',
   // Home
   'Feed street animals, see every meal': 'أطعم حيوانات الشوارع وشاهد كل وجبة',
@@ -195,6 +196,7 @@ const donorAr = <String, String>{
 };
 
 const donorUr = <String, String>{
+  'My Campaigns': 'میری مہمات',
   '&': 'اور',
   // Home
   'Feed street animals, see every meal':

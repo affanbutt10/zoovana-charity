@@ -20,7 +20,7 @@ String formatMoney(String amount, String currency) {
   return currency.isEmpty ? text : '$text $currency';
 }
 
-/// A fixed feeding package. The donor picks exactly one per request.
+/// A feeding package that can be included in a donor basket.
 class CharityPackage {
   const CharityPackage({
     required this.id,
@@ -133,8 +133,7 @@ class CharityPackage {
   };
 }
 
-/// A selected food item and its draft quantity. Backend submission currently
-/// supports one line with quantity one; larger baskets remain local drafts.
+/// A selected food item and quantity; the server quote owns checkout prices.
 class DonationLine {
   const DonationLine({required this.item, required this.quantity});
 

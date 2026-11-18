@@ -1,5 +1,9 @@
 # User app design update: backend and image handoff
 
+> Checkout update (14 November 2026): basket quotes/create, contact, method discovery,
+> SDK payment and new detail fields are integrated. The older checkout gaps below
+> are historical; see [current integration status](FEEDING_BASKET_INTEGRATION_STATUS.md).
+
 Reference: `design/figma/user-app-update/`, copied from the supplied Downloads
 `zoovana Project` folder on 12 November 2026. Applies to the donor/user Home,
 Requests, Impact and Profile tabs and their updated donor flows. Operator roles,

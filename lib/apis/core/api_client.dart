@@ -93,10 +93,20 @@ class _SessionInterceptor extends Interceptor {
   ) async {
     final response = err.response;
     if (response == null) return handler.next(err);
-    final error = AppErrorMapper.fromResponse(
-      response.statusCode,
-      response.data,
-    );
+    var error = AppErrorMapper.fromResponse(response.statusCode, response.data);
+    if (response.statusCode == 429) {
+      error = AppError(
+        type: error.type,
+        message: error.message,
+        statusCode: error.statusCode,
+        code: error.code,
+        canRetry: error.canRetry,
+        details: {
+          ...error.details,
+          'retry_after': response.headers.value('retry-after'),
+        },
+      );
+    }
     final options = err.requestOptions;
     final canRefresh =
         error.hasCode(ApiErrorCode.tokenExpired) &&

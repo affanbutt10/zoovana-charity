@@ -10,6 +10,7 @@ import 'package:zoovana_charity/app/core/assets/app_assets.dart';
 import 'package:zoovana_charity/app/core/bootstrap/app_bootstrap.dart';
 import 'package:zoovana_charity/app/core/theme/app_theme.dart';
 import 'package:zoovana_charity/app/data/models/charity_campaign.dart';
+import 'package:zoovana_charity/app/data/models/feeding_checkout.dart';
 import 'package:zoovana_charity/app/data/models/charity_package.dart';
 import 'package:zoovana_charity/app/data/models/charity_request_detail.dart';
 import 'package:zoovana_charity/app/data/models/donation_receipt.dart';
@@ -19,6 +20,7 @@ import 'package:zoovana_charity/app/modules/charity/controllers/charity_checkout
 import 'package:zoovana_charity/app/modules/charity/models/charity_campaign_state.dart';
 import 'package:zoovana_charity/app/modules/charity/models/charity_checkout_state.dart';
 import 'package:zoovana_charity/app/modules/charity/screens/charity_checkout_screen.dart';
+import 'package:zoovana_charity/app/modules/charity/screens/charity_campaign_screen.dart';
 import 'package:zoovana_charity/app/modules/history/screens/request_details_screen.dart';
 
 const campaign = CharityCampaign(
@@ -91,8 +93,10 @@ void main() {
       c.setQuantity(secondFood, 0);
       expect(c.state.lines, isEmpty);
       expect(c.state.selected, isNull);
+      c.maxQuantity = 7;
       c.setQuantity(food, 1000);
-      expect(c.state.quantityFor('food'), 99);
+      expect(c.state.quantityFor('food'), 7);
+      c.onClose();
     },
   );
 
@@ -104,29 +108,26 @@ void main() {
     );
   });
 
-  test(
-    'unsupported basket never becomes a partial single-package request',
-    () async {
-      final repository = Get.find<CharityRepository>();
-      final c = CharityCheckoutController(repository: repository);
-      c.state = const CharityCheckoutState(
-        campaign: campaign,
-        package: food,
-        lines: [
-          DonationLine(item: food, quantity: 2),
-          DonationLine(item: secondFood, quantity: 1),
-        ],
-      );
-      c.nameController.text = 'Test Donor';
-      c.emailController.text = 'test@example.com';
-      c.phoneController.text = '+923001234567';
-      await c.submit();
-      expect(c.state!.receipt, isNull);
-      expect(c.state!.error, contains('Multiple items'));
-      expect(repository.getDonationHistory(), isEmpty);
-      c.onClose();
-    },
-  );
+  test('unquoted basket cannot submit to the request API', () async {
+    final repository = Get.find<CharityRepository>();
+    final c = CharityCheckoutController(repository: repository);
+    c.state = const CharityCheckoutState(
+      campaign: campaign,
+      package: food,
+      lines: [
+        DonationLine(item: food, quantity: 2),
+        DonationLine(item: secondFood, quantity: 1),
+      ],
+    );
+    c.nameController.text = 'Test Donor';
+    c.emailController.text = 'test@example.com';
+    c.phoneController.text = '+923001234567';
+    await c.submit();
+    expect(c.state!.receipt, isNull);
+    expect(c.state!.error, contains('Refresh the quote'));
+    expect(repository.getDonationHistory(), isEmpty);
+    c.onClose();
+  });
 
   Future<void> setupView(
     WidgetTester tester,
@@ -183,6 +184,34 @@ void main() {
       c.nameController.text = 'Test Donor';
       c.emailController.text = 'test@example.com';
       c.phoneController.text = '+923001234567';
+      c.checkoutLoading = false;
+      c.methods = FeedingPaymentMethods.fromJson({
+        'provider': 'mock',
+        'currencies': ['SAR'],
+        'methods': [
+          {
+            'id': 'card',
+            'platforms': ['android', 'ios'],
+            'provider_method': 'creditcard',
+          },
+        ],
+      });
+      c.state = c.state!.copyWith(
+        quote: FeedingQuote.fromJson({
+          'items': [
+            {
+              'package_id': food.id,
+              'quantity': 2,
+              'name': food.name,
+              'unit_amount_minor': 12340,
+              'currency': 'SAR',
+            },
+          ],
+          'amount_minor': 24680,
+          'currency': 'SAR',
+          'limits': {'max_item_quantity': 7, 'max_line_items': 3},
+        }),
+      );
       await setupView(
         tester,
         width,
@@ -190,12 +219,12 @@ void main() {
         scale: width == 320 ? 1.3 : 1,
       );
       expect(find.text('Choose Payment Method'), findsOneWidget);
-      expect(find.text('Google Pay'), findsOneWidget);
-      expect(find.text('Apple Pay'), findsOneWidget);
+      expect(find.text('Google Pay'), findsNothing);
+      expect(find.text('Apple Pay'), findsNothing);
       expect(
         tester
             .widgetList<TextField>(find.byType(TextField))
-            .every((f) => f.readOnly),
+            .every((f) => f.controller != null),
         isTrue,
       );
       expect(tester.takeException(), isNull);
@@ -206,15 +235,56 @@ void main() {
       expect(find.text('Feeding Items :'), findsOneWidget);
       expect(find.text('Payment Summary'), findsOneWidget);
       expect(find.text('Qty: 2'), findsOneWidget);
-      expect(find.text('246.8 SAR'), findsWidgets);
+      expect(find.text('246.80 SAR'), findsWidgets);
       expect(tester.takeException(), isNull);
       if (width == 393) await capture(tester, 'fixture-review');
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
-      expect(c.state!.error, contains('Multiple items'));
+      c.methods = null;
+      await c.submit();
+      expect(c.state!.error, contains('Refresh the quote'));
       expect(c.state!.receipt, isNull);
     });
   }
+
+  testWidgets(
+    'package grid and quoted footer fit narrow large-text RTL layout',
+    (tester) async {
+      final c = CharityCampaignController(
+        repository: Get.find<CharityRepository>(),
+      );
+      Get.put(c);
+      c.state = const CharityCampaignState(
+        isLoading: false,
+        campaign: campaign,
+        packages: [food, secondFood],
+        quantities: {'food': 2},
+      );
+      c.quote = FeedingQuote.fromJson({
+        'items': [
+          {'package_id': 'food', 'quantity': 2},
+        ],
+        'amount_minor': 24680,
+        'currency': 'SAR',
+        'limits': {'max_item_quantity': 7, 'max_line_items': 3},
+      });
+      c.maxQuantity = 7;
+      await setupView(
+        tester,
+        320,
+        const CharityCampaignScreen(),
+        scale: 1.3,
+        rtl: true,
+      );
+      expect(find.text('246.80 SAR'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      c.toggleLayout(true);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      c.quoting = true;
+      c.update();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   DonationReceipt request(DonationStatus status) => DonationReceipt(
     reference: 'FR-20261112-00001',
@@ -258,7 +328,7 @@ void main() {
       ]) {
         expect(find.text(section), findsOneWidget);
       }
-      expect(find.text('Feeding notes are not available yet.'), findsOneWidget);
+      expect(find.text('No notes'), findsOneWidget);
       expect(find.text('Not available'), findsWidgets);
       expect(find.text('Feeding Summary'), findsNothing);
       expect(tester.takeException(), isNull);

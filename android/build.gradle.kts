@@ -19,6 +19,18 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Moyasar 3.0.6 declares API 33, while its transitive AndroidX libraries
+// require API 34+. Align its library compilation with this app's SDK.
+subprojects {
+    if (name == "moyasar") {
+        plugins.withId("com.android.library") {
+            extensions.configure<com.android.build.api.variant.LibraryAndroidComponentsExtension> {
+                finalizeDsl { it.compileSdk = 36 }
+            }
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

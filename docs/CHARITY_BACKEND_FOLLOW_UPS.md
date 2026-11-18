@@ -60,3 +60,16 @@ We noticed:
 3. Do push messages include a title and body (needed for iPhone), and always a `deep_link`?
 4. Password reset: how many digits is the code, and how long is it valid?
 5. Videos over 25 MB upload straight to Cloudinary; smaller files go through the API. Is that OK?
+
+## Live QA follow-up — 14 November 2026
+
+See [live donor test results](FEEDING_LIVE_TEST_RESULTS_2026-11-14.md):
+request create/list/detail endpoints return HTTP 500, and PKR package quotes do
+not match the SAR-only payment-method currency list. Profile update/restore,
+quotes and validation checks passed.
+
+## Backend redeployment retest
+
+[Live retest results](FEEDING_LIVE_RETEST_2026-11-14.md): request 500s resolved;
+basket idempotency, mock funding, server progress and cancellation verified.
+The advertised SAR-only payment currency still conflicts with PKR packages.

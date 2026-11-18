@@ -193,11 +193,13 @@ class FeedingQuantityControl extends StatelessWidget {
     required this.onChanged,
     required this.name,
     this.horizontal = false,
+    this.maxQuantity,
   });
   final int quantity;
   final ValueChanged<int> onChanged;
   final String name;
   final bool horizontal;
+  final int? maxQuantity;
   Widget _button(bool add) => SizedBox(
     width: 32,
     height: 32,
@@ -205,7 +207,7 @@ class FeedingQuantityControl extends StatelessWidget {
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       tooltip: '${add ? 'Add'.tr : 'Remove'.tr} $name',
-      onPressed: add && quantity >= 99
+      onPressed: add && maxQuantity != null && quantity >= maxQuantity!
           ? null
           : () => onChanged(quantity + (add ? 1 : -1)),
       icon: Icon(

@@ -1,15 +1,43 @@
 // Arabic and Urdu for the checkout screens. Keys are the English text.
 
 const checkoutAr = <String, String>{
+  'Search country': 'ابحث عن دولة',
+  'One click login': 'تسجيل الدخول بنقرة واحدة',
+  'Payments are currently unavailable for @currency. Please try again later.':
+      'الدفع بعملة @currency غير متاح حاليًا. يرجى المحاولة لاحقًا.',
+  'Updating total…': 'جارٍ تحديث الإجمالي…',
+  'Pay / Confirm': 'الدفع / التأكيد',
+  'Edit donor details': 'تعديل بيانات المتبرع',
+  'Secure payment': 'دفع آمن',
+  'Choose Payment Method': 'اختر طريقة الدفع',
+  'Pay with Card': 'الدفع بالبطاقة',
+  'Continue payment': 'متابعة الدفع',
+  'Payment pending': 'بانتظار الدفع',
+  'Your request is awaiting payment confirmation.': 'طلبك بانتظار تأكيد الدفع.',
+  'Refresh checkout': 'تحديث صفحة الدفع',
+  'Payment details are entered securely with the payment provider.':
+      'تُدخل بيانات الدفع بأمان لدى مزود الدفع.',
+  'Feeding notes': 'ملاحظات الإطعام',
+  'No notes': 'لا توجد ملاحظات',
+  'Expected by @date': 'المتوقع بحلول @date',
+  'Please wait @seconds seconds before trying again.':
+      'يرجى الانتظار @seconds ثانية قبل المحاولة مرة أخرى.',
+  'Return to packages and refresh your basket.': 'ارجع إلى الباقات وحدّث سلتك.',
+  'Feeding notes must be 500 characters or fewer.':
+      'يجب ألا تتجاوز ملاحظات الإطعام 500 حرف.',
+  'Refresh the quote and payment methods before continuing.':
+      'حدّث عرض السعر وطرق الدفع قبل المتابعة.',
   // City and animal choice.
   'Start now': 'ابدأ الآن',
   'Support and donation': 'الدعم والتبرّع',
   'Select what you want to support and donate for':
       'اختر ما تريد دعمه والتبرّع له',
   'Street Animals': 'حيوانات الشوارع',
-  'Help stray animals access food, medical care, and rescue services in your community.': 'ساعد الحيوانات الضالة في الحصول على الطعام والرعاية الطبية وخدمات الإنقاذ في مجتمعك.',
+  'Help stray animals access food, medical care, and rescue services in your community.':
+      'ساعد الحيوانات الضالة في الحصول على الطعام والرعاية الطبية وخدمات الإنقاذ في مجتمعك.',
   'Shelters and Campaigns': 'الملاجئ والحملات',
-  'Support animal shelters with the food, supplies, and care they need to protect animals.': 'ادعم ملاجئ الحيوانات بالطعام والمستلزمات والرعاية التي تحتاجها لحماية الحيوانات.',
+  'Support animal shelters with the food, supplies, and care they need to protect animals.':
+      'ادعم ملاجئ الحيوانات بالطعام والمستلزمات والرعاية التي تحتاجها لحماية الحيوانات.',
   'Street Animals Support': 'دعم حيوانات الشوارع',
   'Where do you want to donate ?': 'أين تريد أن تتبرّع؟',
   'No feeding programmes are open right now.':
@@ -89,15 +117,45 @@ const checkoutAr = <String, String>{
 };
 
 const checkoutUr = <String, String>{
+  'Search country': 'ملک تلاش کریں',
+  'One click login': 'ایک کلک سے لاگ اِن',
+  'Payments are currently unavailable for @currency. Please try again later.':
+      '@currency میں ادائیگی فی الحال دستیاب نہیں۔ بعد میں دوبارہ کوشش کریں۔',
+  'Updating total…': 'کل رقم اپ ڈیٹ ہو رہی ہے…',
+  'Pay / Confirm': 'ادائیگی / تصدیق',
+  'Edit donor details': 'عطیہ دہندہ کی تفصیلات بدلیں',
+  'Secure payment': 'محفوظ ادائیگی',
+  'Choose Payment Method': 'ادائیگی کا طریقہ منتخب کریں',
+  'Pay with Card': 'کارڈ سے ادائیگی',
+  'Continue payment': 'ادائیگی جاری رکھیں',
+  'Payment pending': 'ادائیگی زیر التوا',
+  'Your request is awaiting payment confirmation.':
+      'آپ کی درخواست ادائیگی کی تصدیق کی منتظر ہے۔',
+  'Refresh checkout': 'چیک آؤٹ دوبارہ لوڈ کریں',
+  'Payment details are entered securely with the payment provider.':
+      'ادائیگی کی تفصیلات محفوظ طریقے سے ادائیگی فراہم کنندہ کے پاس درج کی جاتی ہیں۔',
+  'Feeding notes': 'کھانا کھلانے کی ہدایات',
+  'No notes': 'کوئی ہدایات نہیں',
+  'Expected by @date': 'متوقع تکمیل @date',
+  'Please wait @seconds seconds before trying again.':
+      'دوبارہ کوشش کرنے سے پہلے @seconds سیکنڈ انتظار کریں۔',
+  'Return to packages and refresh your basket.':
+      'پیکیجز پر واپس جا کر اپنی باسکٹ اپ ڈیٹ کریں۔',
+  'Feeding notes must be 500 characters or fewer.':
+      'ہدایات 500 حروف یا اس سے کم ہونی چاہئیں۔',
+  'Refresh the quote and payment methods before continuing.':
+      'آگے بڑھنے سے پہلے رقم اور ادائیگی کے طریقے اپ ڈیٹ کریں۔',
   // City and animal choice.
   'Start now': 'ابھی شروع کریں',
   'Support and donation': 'مدد اور عطیہ',
   'Select what you want to support and donate for':
       'منتخب کریں کہ آپ کس کی مدد کرنا اور کس کے لیے عطیہ دینا چاہتے ہیں',
   'Street Animals': 'گلی کے جانور',
-  'Help stray animals access food, medical care, and rescue services in your community.': 'اپنے علاقے میں آوارہ جانوروں کو کھانے، طبی دیکھ بھال اور ریسکیو کی سہولیات تک پہنچنے میں مدد دیں۔',
+  'Help stray animals access food, medical care, and rescue services in your community.':
+      'اپنے علاقے میں آوارہ جانوروں کو کھانے، طبی دیکھ بھال اور ریسکیو کی سہولیات تک پہنچنے میں مدد دیں۔',
   'Shelters and Campaigns': 'شیلٹرز اور مہمات',
-  'Support animal shelters with the food, supplies, and care they need to protect animals.': 'جانوروں کے شیلٹرز کو وہ کھانا، سامان اور دیکھ بھال فراہم کریں جس کی انہیں جانوروں کی حفاظت کے لیے ضرورت ہے۔',
+  'Support animal shelters with the food, supplies, and care they need to protect animals.':
+      'جانوروں کے شیلٹرز کو وہ کھانا، سامان اور دیکھ بھال فراہم کریں جس کی انہیں جانوروں کی حفاظت کے لیے ضرورت ہے۔',
   'Street Animals Support': 'گلی کے جانوروں کی مدد',
   'Where do you want to donate ?': 'آپ کہاں عطیہ دینا چاہتے ہیں؟',
   'No feeding programmes are open right now.':
@@ -169,8 +227,10 @@ const checkoutUr = <String, String>{
 
   // Success.
   'Request created': 'درخواست بن گئی',
-  'Your request @reference is saved. It starts once it is funded.': 'آپ کی درخواست @reference محفوظ ہو گئی ہے۔ رقم جمع ہوتے ہی اس پر کام شروع ہو جائے گا۔',
-  'Your request @reference is on its way to a local operator. We’ll let you know as it progresses.': 'آپ کی درخواست @reference ایک مقامی آپریٹر کو بھیجی جا رہی ہے۔ پیش رفت ہونے پر ہم آپ کو بتاتے رہیں گے۔',
+  'Your request @reference is saved. It starts once it is funded.':
+      'آپ کی درخواست @reference محفوظ ہو گئی ہے۔ رقم جمع ہوتے ہی اس پر کام شروع ہو جائے گا۔',
+  'Your request @reference is on its way to a local operator. We’ll let you know as it progresses.':
+      'آپ کی درخواست @reference ایک مقامی آپریٹر کو بھیجی جا رہی ہے۔ پیش رفت ہونے پر ہم آپ کو بتاتے رہیں گے۔',
   'Complete test payment': 'ٹیسٹ پیمنٹ مکمل کریں',
   'View my requests': 'میری درخواستیں دیکھیں',
 };

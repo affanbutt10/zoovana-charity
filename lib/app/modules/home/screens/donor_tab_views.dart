@@ -162,7 +162,7 @@ class DonorHomeView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _Section(
-                      title: 'Cases you donate to it'.tr,
+                      title: 'My Campaigns'.tr,
                       action: 'View all'.tr,
                       onTap: onViewRequests,
                     ),
@@ -174,7 +174,7 @@ class DonorHomeView extends StatelessWidget {
                         request: requests.first,
                         onTap: () => onOpenRequest(requests.first),
                       )
-                    else
+                    else if (error == null)
                       _DonorEmpty(
                         title: 'Your charity journey starts here'.tr,
                         body: 'Track your feeding requests and their proof'.tr,
@@ -713,22 +713,27 @@ class _DonorImpactViewState extends State<DonorImpactView> {
           Row(
             children: [
               _Stat(
-                value: '${widget.requests.length}',
+                value: widget.error != null && widget.requests.isEmpty
+                    ? '—'
+                    : '${widget.requests.length}',
                 label: 'Requests'.tr,
                 icon: Iconsax.receipt_2_copy,
                 color: AppColors.brand,
               ),
               const SizedBox(width: 8),
               _Stat(
-                value:
-                    '${widget.requests.fold<int>(0, (a, r) => a + r.mealCount)}',
+                value: widget.error != null && widget.requests.isEmpty
+                    ? '—'
+                    : '${widget.requests.fold<int>(0, (a, r) => a + r.mealCount)}',
                 label: 'Meals'.tr,
                 icon: Iconsax.box_copy,
                 color: const Color(0xFFFFB900),
               ),
               const SizedBox(width: 8),
               _Stat(
-                value: '${completed.length}',
+                value: widget.error != null && widget.requests.isEmpty
+                    ? '—'
+                    : '${completed.length}',
                 label: 'Completed'.tr,
                 icon: Icons.check_circle_outline,
                 color: const Color(0xFF15C777),
@@ -747,7 +752,9 @@ class _DonorImpactViewState extends State<DonorImpactView> {
           ),
         if (widget.loading || _loadingProofs)
           const VerifiedFeedingListShimmer()
-        else if (_details.values.where((d) => d.proof != null).isEmpty)
+        else if (widget.error == null &&
+            _proofError == null &&
+            _details.values.where((d) => d.proof != null).isEmpty)
           _DonorEmpty(
             title: 'Proof you can see'.tr,
             body:
@@ -854,16 +861,17 @@ class VerifiedFeedingCard extends StatelessWidget {
                   child: Row(
                     children: [
                       _ProofStat(
-                        value: '${proof.mealCount}',
+                        value: proof.mealCount?.toString() ?? '—',
                         label: 'Meals'.tr,
                       ),
                       _ProofStat(
-                        value:
-                            '${(proof.foodQuantityGrams / 1000).toStringAsFixed(1)} kg',
+                        value: proof.foodQuantityGrams == null
+                            ? '—'
+                            : '${(proof.foodQuantityGrams! / 1000).toStringAsFixed(1)} kg',
                         label: 'Food Usage'.tr,
                       ),
                       _ProofStat(
-                        value: '${proof.animalsFedEstimate}',
+                        value: proof.animalsFedEstimate?.toString() ?? '—',
                         label: 'Animals'.tr,
                       ),
                     ],

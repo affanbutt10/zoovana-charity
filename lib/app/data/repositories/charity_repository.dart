@@ -1,6 +1,7 @@
 import '../../../apis/core/api_response.dart';
 import '../../core/services/cache_service.dart';
 import '../datasources/charity_data_source.dart';
+import '../models/feeding_checkout.dart';
 import '../models/charity_campaign.dart';
 import '../models/charity_package.dart';
 import '../models/charity_request_detail.dart';
@@ -124,6 +125,39 @@ class CharityRepository {
       donor: donor,
     );
     await _saveHistory([receipt, ...getDonationHistory()]);
+    return receipt;
+  }
+
+  RemoteCharityDataSource get _checkoutSource {
+    final source = _dataSource;
+    if (source is RemoteCharityDataSource) return source;
+    throw StateError('Basket checkout requires the feeding service.');
+  }
+
+  Future<FeedingQuote> quoteBasket(List<DonationLine> lines) =>
+      _checkoutSource.quoteBasket(lines);
+  Future<Map<String, dynamic>> checkoutContact() =>
+      _checkoutSource.checkoutContact();
+  Future<FeedingPaymentMethods> paymentMethods() =>
+      _checkoutSource.paymentMethods();
+  Future<FeedingPaymentIntent> paymentIntent(String id) =>
+      _checkoutSource.paymentIntent(id);
+  Future<DonationReceipt> createBasket({
+    required List<DonationLine> lines,
+    required DonorDetails donor,
+    required String notes,
+    required String key,
+  }) async {
+    final receipt = await _checkoutSource.createBasket(
+      lines: lines,
+      donor: donor,
+      notes: notes,
+      key: key,
+    );
+    await _saveHistory([
+      receipt,
+      ...getDonationHistory().where((r) => r.requestId != receipt.requestId),
+    ]);
     return receipt;
   }
 

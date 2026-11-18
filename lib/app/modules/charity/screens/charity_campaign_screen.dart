@@ -78,6 +78,7 @@ class CharityCampaignScreen extends GetView<CharityCampaignController> {
                               child: _PackageCard(
                                 item: item,
                                 quantity: state.quantityFor(item.id),
+                                maxQuantity: controller.maxQuantity,
                                 grid: true,
                                 onChanged: (value) =>
                                     controller.setQuantity(item, value),
@@ -96,6 +97,7 @@ class CharityCampaignScreen extends GetView<CharityCampaignController> {
                       child: _PackageCard(
                         item: item,
                         quantity: state.quantityFor(item.id),
+                        maxQuantity: controller.maxQuantity,
                         onChanged: (value) =>
                             controller.setQuantity(item, value),
                       ),
@@ -121,9 +123,23 @@ class CharityCampaignScreen extends GetView<CharityCampaignController> {
               ? null
               : BottomActionBar(
                   children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (controller.quoteError != null)
+                          TextButton(
+                            onPressed: controller.refreshQuote,
+                            child: Text(controller.quoteError!),
+                          ),
+                        if (controller.quote != null)
+                          Text(controller.quote!.label),
+                      ],
+                    ),
                     PillButton(
-                      label: 'Next'.tr,
-                      onPressed: state.lines.isEmpty
+                      label: controller.quoting
+                          ? 'Updating total…'.tr
+                          : 'Next'.tr,
+                      onPressed: !controller.quoteReady
                           ? null
                           : controller.continueToCheckout,
                     ),
@@ -149,17 +165,19 @@ class CharityCampaignScreen extends GetView<CharityCampaignController> {
       : KeyedSubtree(key: key, child: child);
 }
 
-/// Quantities are a local draft until the backend supports a basket contract.
+/// Draft quantity controls capped by limits returned in the server quote.
 class _PackageCard extends StatelessWidget {
   const _PackageCard({
     required this.item,
     required this.quantity,
     required this.onChanged,
     this.grid = false,
+    this.maxQuantity,
   });
   final CharityPackage item;
   final bool grid;
   final int quantity;
+  final int? maxQuantity;
   final ValueChanged<int> onChanged;
   @override
   Widget build(BuildContext context) {
@@ -206,6 +224,7 @@ class _PackageCard extends StatelessWidget {
       name: item.name,
       onChanged: onChanged,
       horizontal: grid,
+      maxQuantity: maxQuantity,
     );
     return Semantics(
       selected: quantity > 0,

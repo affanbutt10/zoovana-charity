@@ -190,6 +190,16 @@ class _LoginScreenState extends State<LoginScreen> {
           isLoading: _submitting,
           onPressed: _submit,
         ),
+        const SizedBox(height: 24),
+        Center(
+          child: Text(
+            'One click login'.tr,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+            ),
+          ),
+        ),
       ],
     );
   }
