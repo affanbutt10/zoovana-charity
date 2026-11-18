@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../../apis/core/api_response.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/zoovana_ui.dart';
-import '../../../shared/widgets/country_phone_field.dart';
-import '../../../shared/widgets/donor_shimmers.dart';
 import '../controllers/charity_checkout_controller.dart';
 import '../models/charity_checkout_state.dart';
 import '../widgets/feeding_design_widgets.dart';
@@ -14,13 +11,12 @@ import '../widgets/feeding_design_widgets.dart';
 class CharityCheckoutScreen extends GetView<CharityCheckoutController> {
   const CharityCheckoutScreen({super.key});
 
-  Future<void> _next(BuildContext context, {bool editContact = false}) async {
-    if (controller.currentStep == 3 && !editContact) {
+  Future<void> _next(BuildContext context) async {
+    if (controller.currentStep == 3) {
       await controller.submit();
       return;
     }
-    if (!controller.ready) return;
-    if (controller.hasValidDonorDetails && !editContact) {
+    if (controller.hasValidDonorDetails) {
       controller.continueToReview();
       return;
     }
@@ -71,52 +67,24 @@ class CharityCheckoutScreen extends GetView<CharityCheckoutController> {
       }
       final receipt = state.receipt;
       if (receipt != null) {
-        final paid = receipt.paymentStatus == 'paid';
-        if (!paid) {
-          return Scaffold(
-            appBar: ZoovanaAppBar(title: 'Payment pending'.tr),
-            body: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(
-                    Icons.hourglass_top,
-                    size: 48,
-                    color: AppColors.brand,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Your request is awaiting payment confirmation.'.tr,
-                    textAlign: TextAlign.center,
-                  ),
-                  Text(receipt.reference, textAlign: TextAlign.center),
-                  if (state.error != null) Text(state.error!),
-                  const SizedBox(height: 20),
-                  if (receipt.status.isUnpaid)
-                    PillButton(
-                      label: 'Continue payment'.tr,
-                      isLoading: c.isOpeningCheckout || state.isSubmitting,
-                      onPressed: c.isOpeningCheckout || state.isSubmitting
-                          ? null
-                          : c.retryPayment,
-                    ),
-                  PillButton(
-                    label: 'View my requests'.tr,
-                    onPressed: c.returnToRequests,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
         return SuccessView(
-          title: 'Donation successful'.tr,
-          message:
-              'Your request @reference is on its way to a local operator. We’ll let you know as it progresses.'
-                  .trParams({'reference': receipt.reference}),
+          title:
+              (receipt.status.isUnpaid
+                      ? 'Request created'
+                      : 'Donation successful')
+                  .tr,
+          message: receipt.status.isUnpaid
+              ? 'Your request @reference is saved. It starts once it is funded.'
+                    .trParams({'reference': receipt.reference})
+              : 'Your request @reference is on its way to a local operator. We’ll let you know as it progresses.'
+                    .trParams({'reference': receipt.reference}),
           actions: [
+            if (c.canOpenMockCheckout)
+              PillButton(
+                label: 'Complete test payment'.tr,
+                isLoading: c.isOpeningCheckout,
+                onPressed: c.openMockCheckout,
+              ),
             PillButton(label: 'Back to Charity'.tr, onPressed: c.returnHome),
           ],
         );
@@ -135,11 +103,6 @@ class CharityCheckoutScreen extends GetView<CharityCheckoutController> {
               ),
             ),
             const SizedBox(height: 34),
-            if (!c.checkoutLoading)
-              TextButton(
-                onPressed: () => _next(context, editContact: true),
-                child: Text('Edit donor details'.tr),
-              ),
             if (review)
               _FeedingReview(controller: c, state: state)
             else
@@ -166,11 +129,9 @@ class CharityCheckoutScreen extends GetView<CharityCheckoutController> {
                   : Get.back,
             ),
             PillButton(
-              label: (review ? 'Pay / Confirm' : 'Next').tr,
-              isLoading: state.isSubmitting || c.checkoutLoading,
-              onPressed: c.ready && !state.isSubmitting
-                  ? () => _next(context)
-                  : null,
+              label: 'Next'.tr,
+              isLoading: state.isSubmitting,
+              onPressed: () => _next(context),
             ),
           ],
         ),
@@ -191,70 +152,152 @@ class _PaymentMethods extends StatelessWidget {
         'Choose Payment Method'.tr,
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
       ),
-      if (controller.checkoutLoading) const _PaymentMethodsShimmer(),
-      for (final method in controller.availableMethods) ...[
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(
-            method.id == 'apple_pay'
-                ? Icons.apple
-                : method.id == 'stc_pay'
-                ? Icons.account_balance_wallet_outlined
-                : Icons.credit_card_outlined,
-          ),
-          title: Text(method.label.tr),
-          trailing: Icon(
-            controller.paymentMethod == method.id
-                ? Icons.radio_button_checked
-                : Icons.radio_button_off,
-            color: AppColors.brand,
-            size: 20,
-          ),
-          onTap: () => controller.selectPaymentMethod(method.id),
+      const SizedBox(height: 12),
+      for (final method in const [
+        ('card', 'Pay with Card'),
+        ('google', 'Google Pay'),
+        ('apple', 'Apple Pay'),
+        ('wallet', 'E-WALLET'),
+      ])
+        Column(
+          children: [
+            Semantics(
+              button: true,
+              selected: controller.paymentMethod == method.$1,
+              child: InkWell(
+                onTap: () => controller.selectPaymentMethod(method.$1),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 17),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: _PaymentBadge(method: method.$1),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          method.$2.tr,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      _PaymentRadio(
+                        selected: controller.paymentMethod == method.$1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (method.$1 != 'wallet')
+              const Divider(height: 1, color: Color(0xFFEDEDE8)),
+          ],
         ),
-        const Divider(height: 1),
+      const SizedBox(height: 24),
+      if (controller.paymentMethod == 'card') ...[
+        _PendingCardFields(
+          onTap: () => Get.snackbar(
+            'Payments'.tr,
+            'Card payments are not available yet.'.tr,
+          ),
+        ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: controller.toggleSaveCard,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(color: AppColors.brand, width: 1.5),
+                    color: controller.saveCard ? AppColors.brand : null,
+                  ),
+                  child: controller.saveCard
+                      ? const Icon(Icons.check, color: Colors.white, size: 12)
+                      : null,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'Save card details for later'.tr,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
       ],
-      if (!controller.checkoutLoading &&
-          state.quote != null &&
-          controller.methods != null &&
-          !controller.methods!.currencies.contains(state.quote!.currency))
-        Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Text(
-            'Payments are currently unavailable for @currency. Please try again later.'
-                .trParams({'currency': state.quote!.currency}),
-            style: const TextStyle(color: AppColors.danger),
-          ),
-        ),
-      if (!controller.checkoutLoading && !controller.ready)
-        TextButton(
-          onPressed: controller.loadCheckout,
-          child: Text('Refresh checkout'.tr),
-        ),
-      const SizedBox(height: 24),
-      Text(
-        'Payment details are entered securely with the payment provider.'.tr,
+      Row(
+        children: [
+          Expanded(child: Text('Total value :'.tr, style: _totalStyle)),
+          Text(state.totalLabel, style: _totalStyle),
+        ],
       ),
-      const SizedBox(height: 24),
+    ],
+  );
+  static const _totalStyle = TextStyle(
+    color: AppColors.brand,
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+  );
+}
+
+class _PendingCardFields extends StatelessWidget {
+  const _PendingCardFields({required this.onTap});
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      // The gateway/tokenization contract is pending: fields match the reference
+      // but cannot collect or store real card data in the interim.
       LabeledField(
-        label: 'Feeding notes'.tr,
-        controller: controller.feedingNotesController,
-        required: false,
-        inputFormatters: [LengthLimitingTextInputFormatter(500)],
+        label: 'Card holder name'.tr,
+        hint: 'Enter card holder name'.tr,
+        readOnly: true,
+        compact: true,
+        onTap: onTap,
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 18),
+      LabeledField(
+        label: 'Card Number'.tr,
+        hint: 'Enter Card Number e.g 1xxxx-xxxx'.tr,
+        readOnly: true,
+        compact: true,
+        onTap: onTap,
+        suffix: const Padding(
+          padding: EdgeInsetsDirectional.only(end: 14),
+          child: _MastercardBadge(),
+        ),
+      ),
+      const SizedBox(height: 18),
       Row(
         children: [
           Expanded(
-            child: Text(
-              'Total value :'.tr,
-              style: const TextStyle(fontSize: 20, color: AppColors.brand),
+            child: LabeledField(
+              label: 'Expiry (MM/YY)'.tr,
+              hint: 'Enter Expiry'.tr,
+              readOnly: true,
+              compact: true,
+              onTap: onTap,
             ),
           ),
-          Flexible(
-            child: Text(
-              state.totalLabel,
-              style: const TextStyle(fontSize: 20, color: AppColors.brand),
+          const SizedBox(width: 16),
+          Expanded(
+            child: LabeledField(
+              label: 'CVV'.tr,
+              hint: 'Enter CVV'.tr,
+              readOnly: true,
+              compact: true,
+              onTap: onTap,
             ),
           ),
         ],
@@ -263,16 +306,118 @@ class _PaymentMethods extends StatelessWidget {
   );
 }
 
+class _MastercardBadge extends StatelessWidget {
+  const _MastercardBadge();
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 36,
+    height: 24,
+    child: Stack(
+      children: [
+        Container(
+          width: 23,
+          height: 23,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEB001B),
+            shape: BoxShape.circle,
+          ),
+        ),
+        PositionedDirectional(
+          start: 13,
+          child: Container(
+            width: 23,
+            height: 23,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF79E1B).withValues(alpha: .95),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PaymentRadio extends StatelessWidget {
+  const _PaymentRadio({required this.selected});
+  final bool selected;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 16,
+    height: 16,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(color: AppColors.brand, width: 1.7),
+    ),
+    child: selected
+        ? Center(
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: AppColors.brand,
+                shape: BoxShape.circle,
+              ),
+            ),
+          )
+        : null,
+  );
+}
+
+class _PaymentBadge extends StatelessWidget {
+  const _PaymentBadge({required this.method});
+  final String method;
+  @override
+  Widget build(BuildContext context) => switch (method) {
+    'google' => Container(
+      height: 26,
+      alignment: Alignment.center,
+      color: const Color(0xFFF0F4FF),
+      child: const FittedBox(fit: BoxFit.scaleDown, child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: 'G',
+              style: TextStyle(
+                color: Color(0xFF4285F4),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            TextSpan(text: ' Pay'),
+          ],
+        ),
+        style: TextStyle(fontSize: 13),
+      )),
+    ),
+    'apple' => Container(
+      height: 24,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: const FittedBox(fit: BoxFit.scaleDown, child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.apple, size: 15, color: Colors.white),
+          Text('Pay', style: TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      )),
+    ),
+    _ => const Icon(Icons.credit_card_outlined, size: 27),
+  };
+}
+
 class _FeedingReview extends StatelessWidget {
   const _FeedingReview({required this.controller, required this.state});
   final CharityCheckoutController controller;
   final CharityCheckoutState state;
-  String get _method =>
-      controller.availableMethods
-          .where((m) => m.id == controller.paymentMethod)
-          .firstOrNull
-          ?.label ??
-      '';
+  String get _method => switch (controller.paymentMethod) {
+    'google' => 'Google Pay',
+    'apple' => 'Apple Pay',
+    'wallet' => 'E-WALLET',
+    _ => 'Card',
+  };
   @override
   Widget build(BuildContext context) {
     final date = controller.draftDate;
@@ -317,15 +462,13 @@ class _FeedingReview extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
             child: Column(
               children: [
-                for (final line
-                    in state.quote?.items ?? <Map<String, dynamic>>[])
+                for (final line in state.items)
                   FeedingItemRow(
-                    name: line.str('name'),
-                    image: line.strOrNull('image_url') ?? '',
-                    description: line.str('description'),
-                    amount:
-                        '${(line.integer('unit_amount_minor') / 100).toStringAsFixed(2)} ${line.str('currency')}',
-                    quantity: line.integer('quantity'),
+                    name: line.item.name,
+                    image: line.item.imageUrl ?? line.item.image,
+                    description: line.item.food,
+                    amount: line.item.priceLabel,
+                    quantity: line.quantity,
                   ),
               ],
             ),
@@ -424,12 +567,13 @@ class _DonorContactFields extends StatelessWidget {
         compact: true,
       ),
       const SizedBox(height: 14),
-      CountryPhoneField(
+      LabeledField(
+        label: 'Phone number'.tr,
         controller: controller.phoneController,
-        countryCode: controller.countryCode,
-        onCountryChanged: controller.selectPhoneCountry,
-        onChanged: controller.phoneChanged,
+        keyboardType: TextInputType.phone,
+        hint: '+92 3xx xxx xxxx',
         errorText: controller.state?.fieldErrors['phone_number'],
+        compact: true,
       ),
       const SizedBox(height: 14),
       LabeledField(
@@ -467,36 +611,5 @@ class _DonorContactFields extends StatelessWidget {
           style: const TextStyle(color: AppColors.danger),
         ),
     ],
-  );
-}
-
-class _PaymentMethodsShimmer extends StatelessWidget {
-  const _PaymentMethodsShimmer();
-  @override
-  Widget build(BuildContext context) => DonorShimmer(
-    child: Column(
-      children: [
-        for (var i = 0; i < 3; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Row(
-              children: [
-                Container(width: 28, height: 24, color: Colors.white),
-                const SizedBox(width: 16),
-                Expanded(child: Container(height: 16, color: Colors.white)),
-                const SizedBox(width: 30),
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    ),
   );
 }

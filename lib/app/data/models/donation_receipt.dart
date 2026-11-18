@@ -56,9 +56,6 @@ class DonationReceipt {
     required this.amount,
     required this.impact,
     required this.createdAt,
-    this.paymentStatus = '',
-    this.totalQuantity,
-    this.amountMinor,
     this.id = '',
     this.currency = 'SAR',
     this.dedication = '',
@@ -110,8 +107,6 @@ class DonationReceipt {
     return AnimalKind.cat;
   }
 
-  final String paymentStatus;
-  final int? totalQuantity, amountMinor;
   String get requestId => id.isEmpty ? reference : id;
 
   String get label => statusLabel ?? status.label.tr;
@@ -131,9 +126,7 @@ class DonationReceipt {
     );
   }
 
-  String get amountLabel => amountMinor == null
-      ? formatMoney(amount, currency)
-      : '${(amountMinor! / 100).toStringAsFixed(2)} $currency';
+  String get amountLabel => formatMoney(amount, currency);
 
   /// Meals funded; read from the impact text for requests stored before the
   /// API sent `meal_count`.
@@ -146,9 +139,6 @@ class DonationReceipt {
   DonationReceipt withStatus(DonationStatus status, {String? label}) =>
       DonationReceipt(
         id: id,
-        paymentStatus: paymentStatus,
-        totalQuantity: totalQuantity,
-        amountMinor: amountMinor,
         reference: reference,
         campaignId: campaignId,
         campaignTitle: campaignTitle,
@@ -172,9 +162,6 @@ class DonationReceipt {
   /// the city.
   DonationReceipt withProgrammeOf(DonationReceipt other) => DonationReceipt(
     id: id,
-    paymentStatus: paymentStatus,
-    totalQuantity: totalQuantity,
-    amountMinor: amountMinor,
     reference: reference,
     campaignId: other.campaignId,
     campaignTitle: other.campaignTitle,
@@ -205,15 +192,8 @@ class DonationReceipt {
         json.strOrNull('program_city') ?? program?.strOrNull('city') ?? '';
     final title = program?.strOrNull('title');
     return DonationReceipt(
-      imageUrl: json.strOrNull('image_url') ?? program?.strOrNull('image_url'),
+      imageUrl: program?.strOrNull('image_url') ?? json.strOrNull('image_url'),
       id: json.str('id'),
-      paymentStatus: json.str('payment_status'),
-      totalQuantity: json['total_quantity'] == null
-          ? null
-          : json.integer('total_quantity'),
-      amountMinor: json['amount_minor'] == null
-          ? null
-          : json.integer('amount_minor'),
       reference: json.str('reference'),
       campaignId: program?.str('id') ?? '',
       campaignTitle:
@@ -243,9 +223,6 @@ class DonationReceipt {
   factory DonationReceipt.fromJson(Map<String, dynamic> json) {
     return DonationReceipt(
       id: json['id'] as String? ?? '',
-      paymentStatus: json.str('paymentStatus'),
-      totalQuantity: (json['totalQuantity'] as num?)?.toInt(),
-      amountMinor: (json['amountMinor'] as num?)?.toInt(),
       reference: json['reference'] as String,
       campaignId: json['campaignId'] as String,
       campaignTitle: json['campaignTitle'] as String,
@@ -270,9 +247,6 @@ class DonationReceipt {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'paymentStatus': paymentStatus,
-    'totalQuantity': totalQuantity,
-    'amountMinor': amountMinor,
     'reference': reference,
     'campaignId': campaignId,
     'campaignTitle': campaignTitle,

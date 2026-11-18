@@ -1,9 +1,5 @@
 # Feeding flow and request detail handoff
 
-> Checkout update (14 November 2026): basket quotes/create, contact, method discovery,
-> SDK payment and new detail fields are integrated. The older checkout gaps below
-> are historical; see [current integration status](FEEDING_BASKET_INTEGRATION_STATUS.md).
-
 Reference: supplied `design/figma/user-app-update/` exports. Scope: donor feeding
 flow and donor request details. Existing operator roles are unchanged.
 

@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'package:get/get.dart';
-import '../../../data/models/feeding_checkout.dart';
 
 import '../../../core/errors/app_error_mapper.dart';
 import '../../../data/models/charity_campaign.dart';
@@ -14,91 +12,6 @@ class CharityCampaignController extends GetxController {
 
   final CharityRepository repository;
   bool gridView = false;
-  FeedingQuote? quote;
-  String? quoteError;
-  bool quoting = false;
-  int? maxQuantity, maxLines;
-  Timer? _debounce;
-  int _revision = 0;
-  bool get quoteReady =>
-      !quoting && quoteError == null && quote?.matches(state.lines) == true;
-  void _scheduleQuote() {
-    _debounce?.cancel();
-    final revision = ++_revision;
-    quote = null;
-    quoteError = null;
-    quoting = state.lines.isNotEmpty;
-    if (state.lines.isEmpty) {
-      update();
-      return;
-    }
-    _debounce = Timer(
-      const Duration(milliseconds: 350),
-      () => refreshQuote(revision),
-    );
-  }
-
-  Future<void> refreshQuote([int? revision]) async {
-    final version = revision ?? ++_revision;
-    if (state.lines.isEmpty) return;
-    quoting = true;
-    update();
-    try {
-      final result = await repository.quoteBasket(state.lines);
-      if (isClosed || version != _revision) return;
-      quote = result;
-      maxQuantity = result.maxQuantity;
-      maxLines = result.maxLines;
-      quoteError = null;
-    } catch (e) {
-      if (isClosed || version != _revision) return;
-      final error = AppErrorMapper.map(e);
-      quoteError = error.message;
-      final max = error.details['max'];
-      if (error.code == 'basket_quantity_invalid' && max is num) {
-        maxQuantity = max.toInt();
-        final id = error.details['package_id'];
-        final item = state.packages.firstWhereOrNull((p) => p.id == id);
-        if (item != null) {
-          setQuantity(item, max.toInt());
-          return;
-        }
-      }
-      if (error.code == 'basket_too_many_items') {
-        maxLines = (error.details['max_line_items'] as num?)?.toInt();
-      }
-      if (error.code == 'package_inactive' ||
-          error.code == 'package_not_found') {
-        final id = error.details['package_id'];
-        final fresh = await repository.getPackages(state.campaign!.id);
-        if (isClosed || version != _revision) return;
-        final quantities = Map<String, int>.from(
-          state.quantities,
-        )..removeWhere((key, _) => key == id || !fresh.any((p) => p.id == key));
-        state = state.copyWith(
-          packages: fresh,
-          quantities: quantities,
-          selectedId: quantities.keys.firstOrNull,
-          clearSelection: quantities.isEmpty,
-        );
-        _scheduleQuote();
-        update();
-        return;
-      }
-      if (error.code == 'program_not_found') Get.offAllNamed(AppRoutes.home);
-    }
-    if (version == _revision) {
-      quoting = false;
-      update();
-    }
-  }
-
-  @override
-  void onClose() {
-    _revision++;
-    _debounce?.cancel();
-    super.onClose();
-  }
 
   void toggleLayout(bool grid) {
     gridView = grid;
@@ -139,7 +52,6 @@ class CharityCampaignController extends GetxController {
         quantities: popular == null ? const {} : {popular.id: 1},
         clearError: true,
       );
-      _scheduleQuote();
     } catch (error) {
       state = state.copyWith(
         isLoading: false,
@@ -151,7 +63,6 @@ class CharityCampaignController extends GetxController {
 
   void select(CharityPackage item) {
     state = state.copyWith(selectedId: item.id, quantities: {item.id: 1});
-    _scheduleQuote();
     update();
   }
 
@@ -159,27 +70,16 @@ class CharityCampaignController extends GetxController {
     final quantities = {
       for (final line in state.lines) line.item.id: line.quantity,
     };
-    if (value > 0 &&
-        !quantities.containsKey(item.id) &&
-        maxLines != null &&
-        quantities.length >= maxLines!) {
-      quoteError = 'Maximum $maxLines items per basket.';
-      update();
-      return;
-    }
     if (value <= 0) {
       quantities.remove(item.id);
     } else {
-      quantities[item.id] = maxQuantity == null
-          ? value
-          : value.clamp(1, maxQuantity!);
+      quantities[item.id] = value.clamp(1, 99);
     }
     state = state.copyWith(
       quantities: quantities,
       selectedId: quantities.keys.firstOrNull,
       clearSelection: quantities.isEmpty,
     );
-    _scheduleQuote();
     update();
   }
 
@@ -191,14 +91,13 @@ class CharityCampaignController extends GetxController {
   void continueToCheckout() {
     final campaign = state.campaign;
     final package = state.selected;
-    if (campaign == null || package == null || !quoteReady) return;
+    if (campaign == null || package == null) return;
     Get.toNamed(
       AppRoutes.checkout,
       arguments: {
         'campaign': campaign,
         'package': package,
         'lines': state.lines,
-        'quote': quote,
       },
     );
   }
