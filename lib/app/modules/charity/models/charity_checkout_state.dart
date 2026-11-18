@@ -1,4 +1,3 @@
-import '../../../data/models/feeding_checkout.dart';
 import '../../../data/models/charity_campaign.dart';
 import '../../../data/models/charity_package.dart';
 import '../../../data/models/donation_receipt.dart';
@@ -9,7 +8,6 @@ class CharityCheckoutState {
     required this.package,
     this.isSubmitting = false,
     this.lines = const [],
-    this.quote,
     this.receipt,
     this.error,
     this.fieldErrors = const {},
@@ -18,10 +16,11 @@ class CharityCheckoutState {
   final CharityCampaign campaign;
   final CharityPackage package;
   final List<DonationLine> lines;
-  final FeedingQuote? quote;
   List<DonationLine> get items =>
       lines.isEmpty ? [DonationLine(item: package, quantity: 1)] : lines;
-  String get totalLabel => quote?.label ?? '—';
+  String get totalLabel => hasMixedCurrencies ? '—' : basketTotalLabel(items);
+  bool get canSubmitLegacyRequest =>
+      items.length == 1 && items.single.quantity == 1;
   bool get hasMixedCurrencies =>
       items.map((l) => l.item.currency).toSet().length > 1;
   final bool isSubmitting;
@@ -33,7 +32,6 @@ class CharityCheckoutState {
 
   CharityCheckoutState copyWith({
     bool? isSubmitting,
-    FeedingQuote? quote,
     DonationReceipt? receipt,
     String? error,
     Map<String, String>? fieldErrors,
@@ -43,7 +41,6 @@ class CharityCheckoutState {
       campaign: campaign,
       package: package,
       lines: lines,
-      quote: quote ?? this.quote,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       receipt: receipt ?? this.receipt,
       error: clearError ? null : (error ?? this.error),

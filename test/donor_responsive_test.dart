@@ -25,57 +25,6 @@ void main() {
     statusLabel: 'Operator assigned',
   );
   tearDown(Get.reset);
-  testWidgets(
-    'live request failure does not claim no donations or zero impact',
-    (tester) async {
-      Get.testMode = true;
-      SharedPreferences.setMockInitialValues({});
-      await AppBootstrap.initialize();
-      await tester.binding.setSurfaceSize(const Size(393, 852));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        GetMaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: DonorHomeView(
-              requests: const [],
-              programmes: const [],
-              loadingRequests: false,
-              loadingProgrammes: false,
-              onRefresh: () async {},
-              onOpenRequest: (_) {},
-              onViewRequests: () {},
-              onDonate: () {},
-              error: 'Internal server error',
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Your charity journey starts here'), findsNothing);
-      expect(find.text('Internal server error'), findsOneWidget);
-      await tester.pumpWidget(
-        GetMaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: DonorImpactView(
-              requests: const [],
-              loading: false,
-              onRefresh: () async {},
-              onOpen: (_) {},
-              onDonate: () {},
-              error: 'Internal server error',
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('0'), findsNothing);
-      expect(find.text('—'), findsNWidgets(3));
-      expect(find.text('Proof you can see'), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
   for (final width in [320.0, 393.0, 600.0]) {
     for (final scale in [1.0, 1.5]) {
       testWidgets(

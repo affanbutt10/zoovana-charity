@@ -76,9 +76,9 @@ class DonationProof {
   });
 
   final List<ProofMedia> media;
-  final int? mealCount;
-  final int? foodQuantityGrams;
-  final int? animalsFedEstimate;
+  final int mealCount;
+  final int foodQuantityGrams;
+  final int animalsFedEstimate;
   final String approximateZone;
   final DateTime approvedAt;
   final String feederNote;
@@ -87,13 +87,9 @@ class DonationProof {
     media: [
       for (final item in json.objects('media')) ProofMedia.fromJson(item),
     ],
-    mealCount: json['meal_count'] == null ? null : json.integer('meal_count'),
-    foodQuantityGrams: json['food_quantity_grams'] == null
-        ? null
-        : json.integer('food_quantity_grams'),
-    animalsFedEstimate: json['animals_fed_estimate'] == null
-        ? null
-        : json.integer('animals_fed_estimate'),
+    mealCount: json.integer('meal_count'),
+    foodQuantityGrams: json.integer('food_quantity_grams'),
+    animalsFedEstimate: json.integer('animals_fed_estimate'),
     approximateZone: json.str('approximate_zone'),
     approvedAt:
         json.time('approved_at') ?? json.time('completed_at') ?? DateTime.now(),
@@ -111,8 +107,6 @@ class CharityRequestDetail {
     this.feedingAt,
     this.feedingNotes = '',
     this.items = const [],
-    this.zoneName,
-    this.progress,
   });
 
   /// The request with its latest status.
@@ -123,8 +117,6 @@ class CharityRequestDetail {
   final DateTime? feedingAt;
   final String feedingNotes;
   final List<RequestFeedingItem> items;
-  final String? zoneName;
-  final FeedingProgress? progress;
 
   DonationStatus get status => request.status;
 
@@ -138,10 +130,6 @@ class CharityRequestDetail {
     final package = json.object('package');
     return CharityRequestDetail(
       request: request,
-      zoneName: json.object('zone')?.strOrNull('name'),
-      progress: json.object('progress') == null
-          ? null
-          : FeedingProgress.fromJson(json.object('progress')!),
       feedingAt: json.time('fed_at') ?? proof?.time('fed_at'),
       feedingNotes: json.strOrNull('feeding_notes') ?? json.str('notes'),
       items: rawItems.isNotEmpty
@@ -196,7 +184,6 @@ class RequestFeedingItem {
           json.strOrNull('description') ?? package?.str('description') ?? '',
       imageUrl: json.strOrNull('image_url') ?? package?.strOrNull('image_url'),
       unitAmount:
-          json.strOrNull('unit_amount') ??
           json.strOrNull('unit_price') ??
           json.strOrNull('amount') ??
           package?.strOrNull('price'),
@@ -204,30 +191,4 @@ class RequestFeedingItem {
       quantity: json['quantity'] == null ? null : json.integer('quantity'),
     );
   }
-}
-
-class FeedingProgress {
-  FeedingProgress.fromJson(Map<String, dynamic> json)
-    : stages = [
-        for (final s in json.objects('stages'))
-          FeedingProgressStage.fromJson(s),
-      ],
-      currentStage = json.strOrNull('current_stage'),
-      haltedStatus = json.strOrNull('halted_status'),
-      estimatedCompletionAt = json.time('estimated_completion_at');
-  final List<FeedingProgressStage> stages;
-  final String? currentStage, haltedStatus;
-  final DateTime? estimatedCompletionAt;
-}
-
-class FeedingProgressStage {
-  FeedingProgressStage.fromJson(Map<String, dynamic> json)
-    : key = json.str('key'),
-      label = json.str('label'),
-      state = json.str('state'),
-      occurredAt = json.str('state') == 'done'
-          ? json.time('occurred_at')
-          : null;
-  final String key, label, state;
-  final DateTime? occurredAt;
 }

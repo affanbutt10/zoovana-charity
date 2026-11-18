@@ -44,7 +44,7 @@ class RequestDetailsScreen extends GetView<RequestDetailsController> {
                       ? [
                           if (c.canPay) ...[
                             PillButton(
-                              label: 'Continue payment'.tr,
+                              label: 'Complete test payment'.tr,
                               onPressed: c.pay,
                             ),
                             const SizedBox(height: 12),
@@ -82,7 +82,12 @@ class RequestDetailsContent extends StatelessWidget {
     final cover = proof?.media
         .where((m) => !m.isVideo || m.thumbnailUrl != null)
         .firstOrNull;
-    final feedingAt = detail.feedingAt;
+    final feedingAt =
+        detail.feedingAt ??
+        detail.timeline
+            .where((e) => e.status == DonationStatus.feeding)
+            .firstOrNull
+            ?.at;
     final items = detail.items.isNotEmpty
         ? detail.items
         : [
@@ -178,17 +183,17 @@ class RequestDetailsContent extends StatelessWidget {
                       child: Row(
                         children: [
                           _Metric(
-                            value: proof?.mealCount?.toString() ?? '—',
+                            value: proof?.mealCount.toString() ?? '—',
                             label: 'Meals',
                           ),
                           _Metric(
-                            value: proof?.foodQuantityGrams == null
+                            value: proof == null
                                 ? '—'
-                                : '${formatAmount(proof!.foodQuantityGrams! / 1000)} kg',
+                                : '${formatAmount(proof.foodQuantityGrams / 1000)} kg',
                             label: 'Food Usage',
                           ),
                           _Metric(
-                            value: proof?.animalsFedEstimate?.toString() ?? '—',
+                            value: proof?.animalsFedEstimate.toString() ?? '—',
                             label: 'Animals',
                           ),
                         ],
@@ -214,23 +219,15 @@ class RequestDetailsContent extends StatelessWidget {
                       ),
                       FeedingInfoRow(
                         label: 'Location :',
-                        value: detail.zoneName?.isNotEmpty == true
-                            ? detail.zoneName!
-                            : proof?.approximateZone.isNotEmpty == true
+                        value: proof?.approximateZone.isNotEmpty == true
                             ? proof!.approximateZone
                             : request.city,
                       ),
-                      if (!completed &&
-                          !request.status.isFinal &&
-                          (detail.progress?.estimatedCompletionAt ??
-                                  detail.expectedCompletionAt ??
-                                  request.expectedCompletionAt) !=
-                              null)
+                      if (!completed)
                         FeedingInfoRow(
                           label: 'Expected Date :',
                           value: _dateTime(
-                            detail.progress?.estimatedCompletionAt ??
-                                detail.expectedCompletionAt ??
+                            detail.expectedCompletionAt ??
                                 request.expectedCompletionAt,
                           ),
                           highlight: true,
@@ -249,7 +246,9 @@ class RequestDetailsContent extends StatelessWidget {
                       for (final item in items)
                         FeedingItemRow(
                           name: item.name,
-                          description: item.description,
+                          description: item.description.isEmpty
+                              ? 'Not available'.tr
+                              : item.description,
                           image: item.imageUrl ?? AppAssets.feedingCatFood,
                           quantity: item.quantity,
                           amount: item.unitAmount == null
@@ -280,7 +279,9 @@ class RequestDetailsContent extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            notes.isEmpty ? 'No notes'.tr : notes,
+                            notes.isEmpty
+                                ? 'Feeding notes are not available yet.'.tr
+                                : notes,
                             style: const TextStyle(
                               fontFamily: AppTheme.secondaryFontFamily,
                               fontSize: 11.5,
@@ -389,37 +390,6 @@ class _FeedingProgress extends StatelessWidget {
   final CharityRequestDetail detail;
   @override
   Widget build(BuildContext context) {
-    final progress = detail.progress;
-    if (progress != null) {
-      return Padding(
-        padding: const EdgeInsets.all(13),
-        child: Column(
-          children: [
-            for (var i = 0; i < progress.stages.length; i++)
-              _ProgressRow(
-                title: progress.stages[i].label,
-                done: progress.stages[i].state == 'done',
-                active: progress.stages[i].state == 'current',
-                last: i == progress.stages.length - 1,
-                time: progress.stages[i].state == 'done'
-                    ? progress.stages[i].occurredAt
-                    : null,
-              ),
-            if (progress.estimatedCompletionAt != null &&
-                progress.haltedStatus == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  'Expected by @date'.trParams({
-                    'date': _dateTime(progress.estimatedCompletionAt),
-                  }),
-                ),
-              ),
-            if (progress.haltedStatus != null) Text(detail.request.label),
-          ],
-        ),
-      );
-    }
     final events = [
       for (final stage in _stages)
         detail.timeline.reversed
@@ -695,15 +665,9 @@ Future<void> _confirmCancel(
 }
 
 class ProofImage extends StatelessWidget {
-  const ProofImage(
-    this.media, {
-    super.key,
-    this.thumbnail = false,
-    this.fit = BoxFit.cover,
-  });
+  const ProofImage(this.media, {super.key, this.thumbnail = false});
   final ProofMedia media;
   final bool thumbnail;
-  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -714,22 +678,13 @@ class ProofImage extends StatelessWidget {
         child: Icon(Iconsax.gallery_copy, color: AppColors.textTertiary),
       ),
     );
-    if (!media.isNetwork) return Image.asset(url, fit: fit);
+    if (!media.isNetwork) return Image.asset(url, fit: BoxFit.cover);
     return Image.network(
       url,
-      fit: fit,
+      fit: BoxFit.cover,
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : placeholder,
-      errorBuilder: (_, error, _) {
-        if (Get.isRegistered<RequestDetailsController>() &&
-            error is NetworkImageLoadException &&
-            (error.statusCode == 401 || error.statusCode == 404)) {
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => Get.find<RequestDetailsController>().refreshFailedMedia(url),
-          );
-        }
-        return placeholder;
-      },
+      errorBuilder: (_, _, _) => placeholder,
     );
   }
 }
@@ -776,21 +731,7 @@ class _ProofGalleryViewerState extends State<ProofGalleryViewer> {
 
   @override
   Widget build(BuildContext context) {
-    if (Get.isRegistered<RequestDetailsController>()) {
-      return GetBuilder<RequestDetailsController>(
-        autoRemove: false,
-        builder: (c) => _gallery(
-          context,
-          c.detail?.proof?.media.isNotEmpty == true
-              ? c.detail!.proof!.media
-              : widget.media,
-        ),
-      );
-    }
-    return _gallery(context, widget.media);
-  }
-
-  Widget _gallery(BuildContext context, List<ProofMedia> media) {
+    final media = widget.media;
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -805,7 +746,9 @@ class _ProofGalleryViewerState extends State<ProofGalleryViewer> {
                 child: Center(
                   child: media[index].isVideo
                       ? _VideoPreview(media: media[index])
-                      : ProofImage(media[index], fit: BoxFit.contain),
+                      : media[index].isNetwork
+                      ? Image.network(media[index].url, fit: BoxFit.contain)
+                      : Image.asset(media[index].url, fit: BoxFit.contain),
                 ),
               ),
             ),
@@ -853,7 +796,7 @@ class _VideoPreview extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
     alignment: Alignment.center,
     children: [
-      if (media.thumbnailUrl != null) ProofImage(media, thumbnail: true),
+      if (media.thumbnailUrl != null) LocalOrNetworkImage(media.thumbnailUrl!),
       FilledButton.icon(
         onPressed: () async {
           final uri = Uri.tryParse(media.url);
